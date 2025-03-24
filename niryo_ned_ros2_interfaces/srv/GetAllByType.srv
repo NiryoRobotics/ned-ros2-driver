@@ -1,0 +1,4 @@
+string type
+---
+int32 status
+niryo_ned_ros2_interfaces/FilePath[] filepaths

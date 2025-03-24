@@ -1,0 +1,9 @@
+# goal
+niryo_ned_ros2_interfaces/ArmMoveCommand cmd
+---
+# result
+int32 status
+string message
+---
+# feedback
+niryo_ned_ros2_interfaces/RobotState state   

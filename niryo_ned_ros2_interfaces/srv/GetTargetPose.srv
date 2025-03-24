@@ -1,0 +1,9 @@
+string workspace
+float32 height_offset
+float32 x_rel
+float32 y_rel
+float32 yaw_rel
+---
+int32 status
+string message
+niryo_ned_ros2_interfaces/RobotState target_pose

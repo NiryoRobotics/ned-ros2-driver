@@ -1,92 +1,60 @@
 # /usr/bin/env python3
 
-import rclpy
 from rclpy.node import Node
-from rcl_interfaces.msg import ParameterDescriptor, ParameterType
+from rclpy.qos import qos_profile_default
 
 import roslibpy
 
+from .topic import Topic
+from .models import ROSTypes
+from .utils import convert_ros1_to_ros2_type
 
-class ROS2Driver(Node):
-    def __init__(self):
-        super().__init__("ros2_driver_node")
 
-        self.init_all_parameters()
+class ROS2Driver:
+    def __init__(
+        self,
+        node: Node,
+        namespace: str,
+        ip: str,
+        port: int,
+        ros2_interfaces_package: str,
+    ):
+        self._node = node
+        self._namespace = namespace
+        self._ros2_interfaces_package = ros2_interfaces_package
+        self._rosbridge_client = roslibpy.Ros(host=ip, port=port)
 
-        namespaces = (
-            self.get_parameter("robot_namespaces")
-            .get_parameter_value()
-            .string_array_value
-        )
-        ips = self.get_parameter("robot_ips").get_parameter_value().string_array_value
-        port = self.get_parameter("rosbridge_port").get_parameter_value().integer_value
+        self._topics = []
+        self._services = []
+        self._actions = []
 
-        # Check lengths
-        if len(namespaces) != len(ips):
-            self.get_logger().error(
-                "robot_namespaces and robot_ips must have the same length"
-            )
-            return
+        self._rosbridge_client.run()
 
-        # Check for uniqueness
-        if len(set(namespaces)) != len(namespaces):
-            self.get_logger().error("robot_namespaces must be unique")
-            return
-        if len(set(ips)) != len(ips):
-            self.get_logger().error("robot_ips must be unique")
-            return
+        self._register_topics()
 
-        self._rosbridge_clients = {}
-
-        robots = list(zip(namespaces, ips))
-        for ns, ip in robots:
-            self.get_logger().info(
-                f"Creating client for {ns} with IP: {ip} and port: {port}"
-            )
-            client = roslibpy.Ros(host=ip, port=port)
-            client.run()
-            self._rosbridge_clients.update({ns: client})
-
-    def __del__(self):
-        for client in self._rosbridge_clients.values():
-            client.terminate()
-
-    def init_all_parameters(self):
+    def _register_topics(self):
         """
-        Initialize all parameters for the driver.
+        Get all the topics available on the ROS1 side and create the corresponding
+        topics on the ROS2 side.
         """
-        self.declare_parameter("rosbridge_port", 9090)
-        self.declare_parameter(
-            "robot_namespaces",
-            [""],
-            descriptor=ParameterDescriptor(
-                name="robot_ips",
-                type=ParameterType.PARAMETER_STRING_ARRAY,
-                description="List of robot namespaces",
-            ),
-        )
-        self.declare_parameter(
-            "robot_ips",
-            [""],
-            descriptor=ParameterDescriptor(
-                name="robot_ips",
-                type=ParameterType.PARAMETER_STRING_ARRAY,
-                description="List of robot IP addresses",
-            ),
-        )
-
-
-def main():
-    rclpy.init()
-
-    node = ROS2Driver()
-
-    rclpy.spin(node)
-
-    node.destroy_node()
-
-    rclpy.shutdown()
-
-
-if __name__ == "__main__":
-    main()
+        topics = self._rosbridge_client.get_topics()
+        for topic in topics:
+            ros1_type = self._rosbridge_client.get_topic_type(topic)
+            topic_type = ROSTypes(
+                ros1_type=ros1_type,
+                ros2_type=convert_ros1_to_ros2_type(
+                    ros1_type, self._ros2_interfaces_package
+                ),
+            )
+            # TODO handle special cases (Transient local , best effort, ...)
+            qos = qos_profile_default
+            self._topics.append(
+                Topic(
+                    self._node,
+                    topic,
+                    topic_type,
+                    qos,
+                    self._namespace,
+                    self._rosbridge_client,
+                )
+            )

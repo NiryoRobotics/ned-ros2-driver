@@ -1,0 +1,2 @@
+niryo_ned_ros2_interfaces/DigitalIO[] digital_inputs
+niryo_ned_ros2_interfaces/DigitalIO[] digital_outputs

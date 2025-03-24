@@ -1,0 +1,13 @@
+string obj_type
+string obj_color
+float32 workspace_ratio
+bool ret_image
+---
+int32 status
+
+niryo_ned_ros2_interfaces/ObjectPose obj_pose
+
+string obj_type
+string obj_color
+
+sensor_msgs/CompressedImage img

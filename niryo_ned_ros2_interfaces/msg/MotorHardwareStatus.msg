@@ -1,0 +1,7 @@
+niryo_ned_ros2_interfaces/MotorHeader motor_identity
+
+string firmware_version
+uint32 temperature
+float64 voltage
+uint32 error
+string error_msg

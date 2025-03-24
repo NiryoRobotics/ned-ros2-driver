@@ -1,0 +1,2 @@
+float64[] positions
+builtin_interfaces/Duration time_from_start

@@ -1,0 +1,10 @@
+bool execute_from_string
+
+string name
+string code_string
+
+niryo_ned_ros2_interfaces/ProgramLanguage language
+---
+int16 status
+string message
+string output

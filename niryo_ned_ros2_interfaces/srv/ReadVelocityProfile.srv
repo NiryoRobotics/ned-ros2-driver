@@ -1,0 +1,20 @@
+# Check stepper ttl reference doc for
+# the complete register table
+
+uint8 id
+---
+float64 v_start
+
+float64 a_1
+float64 v_1
+
+float64 a_max
+float64 v_max
+float64 d_max
+
+float64 d_1
+
+float64 v_stop
+
+int32 status
+string message

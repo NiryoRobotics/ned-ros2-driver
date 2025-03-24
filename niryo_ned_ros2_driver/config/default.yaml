@@ -1,7 +1,0 @@
-ros2_driver:
-  ros__parameters:
-    rosbridge_port: 9090
-    robot_namespaces:
-      - ""
-    robot_ips:
-      - "127.0.0.1"

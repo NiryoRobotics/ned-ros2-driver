@@ -23,7 +23,7 @@ setup(
     tests_require=["pytest"],
     entry_points={
         "console_scripts": [
-            "ros2_driver = niryo_ned_ros2_driver.driver:main",
+            "ros2_driver = niryo_ned_ros2_driver.bridge_node:main",
         ],
     },
 )

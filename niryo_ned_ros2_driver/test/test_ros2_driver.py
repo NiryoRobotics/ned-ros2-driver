@@ -31,3 +31,7 @@ def test_driver_duplicate_namespaces(mock_ros_class):
 @patch("niryo_ned_ros2_driver.driver.roslibpy.Ros")
 def test_driver_duplicate_ips(mock_ros_class):
     pass
+
+def test_get_rosbridge_client():
+    # Get empty with empty namespace
+    pass

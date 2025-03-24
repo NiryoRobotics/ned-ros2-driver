@@ -7,7 +7,7 @@ import os
 
 def generate_launch_description():
     default_config_path = os.path.join(
-        get_package_share_directory("niryo_ned_ros2_driver"), "config", "default.yaml"
+        get_package_share_directory("niryo_ned_ros2_driver"), "config", "config.yaml"
     )
 
     return LaunchDescription(

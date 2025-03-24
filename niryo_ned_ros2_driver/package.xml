@@ -7,6 +7,8 @@
   <maintainer email="t.degallaix@niryo.com">Thomas Degallaix</maintainer>
   <license>Apache-2.0</license>
 
+  <depend>rclpy</depend>
+
   <test_depend>python3-pytest</test_depend>
 
   <export>

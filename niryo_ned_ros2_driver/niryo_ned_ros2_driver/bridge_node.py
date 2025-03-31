@@ -1,5 +1,6 @@
 # /usr/bin/env python3
 
+import sys
 import rclpy
 from rclpy.node import Node
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType
@@ -11,63 +12,52 @@ class Bridge(Node):
     def __init__(self):
         super().__init__("ros2_bridge_node")
 
-        self._init_parameters()
+        self._declare_parameters()
 
-        namespaces = (
-            self.get_parameter("robot_namespaces")
-            .get_parameter_value()
-            .string_array_value
+        namespace = (
+            self.get_parameter("robot_namespace").get_parameter_value().string_value
         )
-        ips = self.get_parameter("robot_ips").get_parameter_value().string_array_value
+        ip = self.get_parameter("robot_ip").get_parameter_value().string_value
         port = self.get_parameter("rosbridge_port").get_parameter_value().integer_value
-        ros2_interfaces_package = (
-            self.get_parameter("niryo_ros2_interfaces_package")
-            .get_parameter_value()
-            .string_value
+
+        if not ip:
+            self.get_logger().error("Robot IP is required")
+            rclpy.shutdown()
+            sys.exit(1)
+
+        use_whitelist = (
+            self.get_parameter("use_whitelist").get_parameter_value().bool_value
         )
 
-        # Check lengths
-        if len(namespaces) != len(ips):
-            self.get_logger().error(
-                "robot_namespaces and robot_ips must have the same length"
+        whitelist_interfaces = []
+        if use_whitelist:
+            whitelist_interfaces = (
+                self.get_parameter("whitelist_interfaces")
+                .get_parameter_value()
+                .string_array_value
             )
-            return
 
-        # Check for uniqueness
-        if len(set(namespaces)) != len(namespaces):
-            self.get_logger().error("robot_namespaces must be unique")
-            return
-        if len(set(ips)) != len(ips):
-            self.get_logger().error("robot_ips must be unique")
-            return
-
-        self._drivers = {}
-
-        robots = list(zip(namespaces, ips))
-        for ns, ip in robots:
-            self.get_logger().info(
-                f"Creating driver for {ns} with IP: {ip} and port: {port}"
-            )
-            client = ROS2Driver(self, ns, ip, port, ros2_interfaces_package)
-            self._drivers.update({ns: client})
-
-    def __del__(self):
-        for client in self._drivers.values():
-            client.terminate()
-
-    def _init_parameters(self):
-        """
-        Initialize parameters for the driver.
-        """
-        self.declare_parameter(
-            "niryo_ros2_interfaces_package",
-            "",
-            descriptor=ParameterDescriptor(
-                name="niryo_ros2_interfaces_package",
-                type=ParameterType.PARAMETER_STRING,
-                description="Name of the ROS2 package containing the Niryo interfaces",
-            ),
+        self.get_logger().info(
+            f"Creating driver for robot with IP: {ip} and port: {port}"
         )
+
+        try:
+            self._driver = ROS2Driver(
+                self,
+                namespace,
+                ip,
+                port,
+                use_whitelist,
+                whitelist_interfaces,
+            )
+        except Exception as e:
+            self.get_logger().error(f"Failed to create driver: {e}")
+            rclpy.shutdown()
+            sys.exit(1)
+
+        self.get_logger().info(f"Bridge node initialized for robot with ip: {ip}")
+
+    def _declare_parameters(self):
         self.declare_parameter(
             "rosbridge_port",
             9090,
@@ -78,21 +68,39 @@ class Bridge(Node):
             ),
         )
         self.declare_parameter(
-            "robot_namespaces",
-            [""],
+            "robot_namespace",
+            "",
             descriptor=ParameterDescriptor(
-                name="robot_ips",
-                type=ParameterType.PARAMETER_STRING_ARRAY,
-                description="List of robot namespaces",
+                type=ParameterType.PARAMETER_STRING,
+                description="Robot's namespace",
             ),
         )
         self.declare_parameter(
-            "robot_ips",
+            "robot_ip",
+            "",
+            descriptor=ParameterDescriptor(
+                type=ParameterType.PARAMETER_STRING,
+                description="Robot's IP address",
+            ),
+        )
+
+        self.declare_parameter(
+            "use_whitelist",
+            False,
+            descriptor=ParameterDescriptor(
+                name="use_whitelist",
+                type=ParameterType.PARAMETER_BOOL,
+                description="Whether only a subset of interfaces should be bridged",
+            ),
+        )
+
+        self.declare_parameter(
+            "whitelist_interfaces",
             [""],
             descriptor=ParameterDescriptor(
-                name="robot_ips",
+                name="whitelist_interfaces",
                 type=ParameterType.PARAMETER_STRING_ARRAY,
-                description="List of robot IP addresses",
+                description="List of whitelisted interfaces if use_whitelist is True",
             ),
         )
 

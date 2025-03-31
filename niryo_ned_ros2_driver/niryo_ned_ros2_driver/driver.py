@@ -1,13 +1,13 @@
 # /usr/bin/env python3
 
 from rclpy.node import Node
-from rclpy.qos import qos_profile_default
 
 import roslibpy
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .topic import Topic
 from .models import ROSTypes
-from .utils import convert_ros1_to_ros2_type
+from .utils import convert_ros1_to_ros2_type, filter_topics, measure_time
 
 
 class ROS2Driver:
@@ -17,43 +17,100 @@ class ROS2Driver:
         namespace: str,
         ip: str,
         port: int,
-        ros2_interfaces_package: str,
+        use_whitelist: bool,
+        whitelist_interfaces: list[str],
     ):
         self._node = node
         self._namespace = namespace
-        self._ros2_interfaces_package = ros2_interfaces_package
         self._rosbridge_client = roslibpy.Ros(host=ip, port=port)
 
         self._topics = []
         self._services = []
         self._actions = []
 
-        self._rosbridge_client.run()
+        timings = {}
 
-        self._register_topics()
+        try:
+            self._rosbridge_client.run()
+        except roslibpy.core.RosTimeoutError:
+            raise Exception(f"Timeout to connect to ROSBridge at ws://{ip}:{port}")
 
-    def _register_topics(self):
+        if use_whitelist:
+            self._node.get_logger().debug(
+                f"Using whitelisted topics: {whitelist_interfaces}"
+            )
+            topic_names = whitelist_interfaces
+        else:
+            self._node.get_logger().debug("Retrieving topics...")
+            topic_names, duration, label = measure_time(
+                "get_topics", self._rosbridge_client.get_topics
+            )
+            timings[label] = duration
+
+        topic_type_map, duration, label = measure_time(
+            "get_topic_types_parallel", self._get_topic_types_parallel, topic_names
+        )
+        timings[label] = duration
+
+        filtered_topics, duration, label = measure_time(
+            "filter_topics", filter_topics, topic_type_map
+        )
+        timings[label] = duration
+
+        _, duration, label = measure_time(
+            "register_topics", self._register_topics, filtered_topics
+        )
+        timings[label] = duration
+
+        self._node.get_logger().debug("=== Topic setup timings (in seconds) ===")
+        for step, duration in timings.items():
+            self._node.get_logger().debug(f"{step}: {duration:.3f}")
+
+    def __del__(self):
+        if self._rosbridge_client.is_connected:
+            self._rosbridge_client.terminate()
+            self._node.get_logger().info("ROSBridge connection closed.")
+
+    def _get_topic_types_parallel(self, topic_names: list[str]) -> dict:
+        """
+        Get topic types in parallel using ThreadPoolExecutor.
+        """
+        max_workers = min(32, max(4, len(topic_names) // 5))
+        topic_type_map = {}
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_topic = {
+                executor.submit(self._rosbridge_client.get_topic_type, topic): topic
+                for topic in topic_names
+            }
+            for future in as_completed(future_to_topic):
+                topic = future_to_topic[future]
+                try:
+                    topic_type = future.result()
+                    topic_type_map[topic] = topic_type
+                except Exception as e:
+                    self._node.get_logger().warn(f"Failed to get type for {topic}: {e}")
+        return topic_type_map
+
+    def _register_topics(self, topics: dict):
         """
         Get all the topics available on the ROS1 side and create the corresponding
         topics on the ROS2 side.
         """
-        topics = self._rosbridge_client.get_topics()
-        for topic in topics:
-            ros1_type = self._rosbridge_client.get_topic_type(topic)
-            topic_type = ROSTypes(
-                ros1_type=ros1_type,
-                ros2_type=convert_ros1_to_ros2_type(
-                    ros1_type, self._ros2_interfaces_package
-                ),
+        self._node.get_logger().debug("Registering topics...")
+        for topic_name, ros1_type in topics.items():
+            self._node.get_logger().debug(
+                f"Registering topic {topic_name} of type {ros1_type}"
             )
-            # TODO handle special cases (Transient local , best effort, ...)
-            qos = qos_profile_default
+
+            ros2_type = convert_ros1_to_ros2_type(ros1_type)
+
+            topic_type = ROSTypes(ros1_type=ros1_type, ros2_type=ros2_type)
+
             self._topics.append(
                 Topic(
                     self._node,
-                    topic,
+                    topic_name,
                     topic_type,
-                    qos,
                     self._namespace,
                     self._rosbridge_client,
                 )

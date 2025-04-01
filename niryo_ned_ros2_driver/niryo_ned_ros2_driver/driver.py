@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 
 from .topic import Topic
+from .tf_static_topic import StaticTFTopic
 from .models import ROSTypes
 from .utils import convert_ros1_to_ros2_type, filter_topics, measure_time
 
@@ -109,15 +110,27 @@ class ROS2Driver:
 
             topic_type = ROSTypes(ros1_type=ros1_type, ros2_type=ros2_type)
 
-            self._topics.append(
-                Topic(
-                    self._node,
-                    topic_name,
-                    topic_type,
-                    self._namespace,
-                    self._rosbridge_client,
+            if topic_name == "/tf_static":
+                # Special case for static TFs
+                self._topics.append(
+                    StaticTFTopic(
+                        self._node,
+                        topic_name,
+                        topic_type,
+                        self._namespace,
+                        self._rosbridge_client,
+                    )
                 )
-            )
+            else:
+                self._topics.append(
+                    Topic(
+                        self._node,
+                        topic_name,
+                        topic_type,
+                        self._namespace,
+                        self._rosbridge_client,
+                    )
+                )
 
     def _safe_get_topic_type(self, client, topic, retries=3, delay=0.1):
         """

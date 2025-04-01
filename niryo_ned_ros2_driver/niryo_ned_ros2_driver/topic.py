@@ -10,38 +10,14 @@ from rclpy.qos import (
 
 from rosidl_runtime_py.utilities import get_message
 from rosidl_runtime_py.set_message import set_message_fields
+from rosidl_runtime_py.convert import message_to_ordereddict
 
 import roslibpy
 
 from .models import ROSTypes
-from .utils import normalize_ros1_type_to_ros2
-
-LATCHED_ROS1_TOPICS = {
-    "/niryo_robot_status/robot_status",
-    "/niryo_robot_led_ring/led_ring_status",
-    "/niryo_robot/max_velocity_scaling_factor",
-    "/niryo_robot/max_acceleration_scaling_factor",
-    "/niryo_robot_arm_commander/trajectory_list",
-    "/niryo_robot_poses_handlers/dynamic_frame_list",
-    "/niryo_robot_poses_handlers/workspace_list",
-    "/niryo_robot_poses_handlers/pose_list",
-    "/visualization_marker_array",
-    "/niryo_robot_programs_manager_v2/program_list",
-    "/niryo_robot_rpi/digital_io_state",
-    "/niryo_robot_rpi/analog_io_state",
-    "/niryo_robot_rpi/pause_state",
-    "/niryo_robot/rpi/is_button_pressed",
-    "/niryo_robot/rpi/led_state",
-    "/niryo_robot/rpi/is_button_pressed",
-    "/niryo_robot_sound/sound_database",
-    "/niryo_robot_sound/sound",
-    "/niryo_robot_sound/volume",
-    "/niryo_robot_tools_commander/current_id",
-    "/niryo_robot_tools_commander/tcp",
-    "/niryo_robot_vision/visualization_marker",
-    "/niryo_robot_vision/camera_intrinsics",
-    "/niryo_robot_vision/video_stream_parameters",
-}
+from .utils.loopback_filter import HashedMessageLoopbackFilter
+from .utils.conversion import normalize_ros1_type_to_ros2
+from .utils.constants import LATCHED_ROS1_TOPICS
 
 
 class Topic:
@@ -59,6 +35,8 @@ class Topic:
         self._prefix = prefix
         self._qos = self._get_ros2_qos_for_topic(topic_name)
         self._rosbridge_client = rosbridge_client
+
+        self._loopback_filter = HashedMessageLoopbackFilter()
 
         self._node.get_logger().debug(
             f"Creating topic bridge for {topic_name} ({topic_types.ros1_type} → {topic_types.ros2_type})"
@@ -114,6 +92,10 @@ class Topic:
         Callback for the ROS1 subscriber.
         Converts the dictionary from roslibpy into a ROS2 message.
         """
+        if self._loopback_filter.should_skip_ros1_to_ros2(msg_dict):
+            return
+        self._loopback_filter.record_ros1_to_ros2(msg_dict)
+
         ros2_msg = self._ros2_msg_class()
         normalize_ros1_type_to_ros2(msg_dict, self._ros2_type_str)
         try:
@@ -128,8 +110,16 @@ class Topic:
         """
         Callback for the ROS2 subscriber.
         """
-
-        # self._ros1_publisher.publish(msg)
+        try:
+            msg_dict = message_to_ordereddict(ros2_msg)
+            if self._loopback_filter.should_skip_ros2_to_ros1(msg_dict):
+                return
+            self._loopback_filter.record_ros2_to_ros1(msg_dict)
+            self._ros1_publisher.publish(msg_dict)
+        except Exception as e:
+            self._node.get_logger().error(
+                f"Failed to convert ROS2 → ROS1 message for topic '{self._topic_name}': {e}"
+            )
 
     def _get_ros2_qos_for_topic(self, topic_name: str) -> QoSProfile:
         """

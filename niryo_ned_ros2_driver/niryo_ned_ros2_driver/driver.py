@@ -4,6 +4,7 @@ from rclpy.node import Node
 
 import roslibpy
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
 
 from .topic import Topic
 from .models import ROSTypes
@@ -75,11 +76,13 @@ class ROS2Driver:
         """
         Get topic types in parallel using ThreadPoolExecutor.
         """
-        max_workers = min(32, max(4, len(topic_names) // 5))
+        max_workers = min(5, len(topic_names))
         topic_type_map = {}
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_topic = {
-                executor.submit(self._rosbridge_client.get_topic_type, topic): topic
+                executor.submit(
+                    self._safe_get_topic_type, self._rosbridge_client, topic
+                ): topic
                 for topic in topic_names
             }
             for future in as_completed(future_to_topic):
@@ -115,3 +118,19 @@ class ROS2Driver:
                     self._rosbridge_client,
                 )
             )
+
+    def _safe_get_topic_type(self, client, topic, retries=3, delay=0.1):
+        """
+        Safely get the topic type with retries.
+        This is useful for topics that may not be available immediately
+        or if rosbridge gets too many requests at once.
+        """
+        for attempt in range(retries):
+            try:
+                topic_type = client.get_topic_type(topic)
+                return topic_type
+            except Exception as e:
+                if attempt < retries - 1:
+                    time.sleep(delay)
+                else:
+                    raise e

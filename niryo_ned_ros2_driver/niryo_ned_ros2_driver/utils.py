@@ -32,6 +32,8 @@ ROS1_INTERFACE_PACKAGES = [
 ]
 BLACKLISTED_INTERFACES = [
     "/niryo_robot_programs_manager/program_list",
+    "/niryo_robot_programs_manager/program_is_running",
+    "/connected_clients",
     "/niryo_robot_follow_joint_trajectory_controller/state",  # TODO(Thomas): we might need to find a solution to reabilitate this topic
 ]
 
@@ -168,3 +170,8 @@ def normalize_ros1_type_to_ros2(obj: dict, ros2_type_str: str):
 
                 if isinstance(marker.get("lifetime"), dict):
                     marker["lifetime"] = convert_dict_to_duration(marker["lifetime"])
+
+    if ros2_type_str == "sensor_msgs/msg/CameraInfo":
+        for cap in ("D", "K", "R", "P"):
+            if cap in obj:
+                obj[cap.lower()] = obj.pop(cap)

@@ -9,7 +9,9 @@ import time
 from .topic import Topic
 from .tf_static_topic import StaticTFTopic
 from .models import ROSTypes
-from .utils import convert_ros1_to_ros2_type, filter_topics, measure_time
+from .utils.type_mapping import convert_ros1_to_ros2_type
+from .utils.timing import measure_time
+from .utils.filtering import filter_topics
 
 
 class ROS2Driver:

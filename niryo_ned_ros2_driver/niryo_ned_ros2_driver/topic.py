@@ -16,11 +16,31 @@ import roslibpy
 from .models import ROSTypes
 from .utils import normalize_ros1_type_to_ros2
 
-# TODO(Thomas): find all latched topics in the ROS1 codebase
 LATCHED_ROS1_TOPICS = {
-    "/tf_static",
     "/niryo_robot_status/robot_status",
-    "/robot_description",
+    "/niryo_robot_led_ring/led_ring_status",
+    "/niryo_robot/max_velocity_scaling_factor",
+    "/niryo_robot/max_acceleration_scaling_factor",
+    "/niryo_robot_arm_commander/trajectory_list",
+    "/niryo_robot_poses_handlers/dynamic_frame_list",
+    "/niryo_robot_poses_handlers/workspace_list",
+    "/niryo_robot_poses_handlers/pose_list",
+    "/visualization_marker_array",
+    "/niryo_robot_programs_manager_v2/program_list",
+    "/niryo_robot_rpi/digital_io_state",
+    "/niryo_robot_rpi/analog_io_state",
+    "/niryo_robot_rpi/pause_state",
+    "/niryo_robot/rpi/is_button_pressed",
+    "/niryo_robot/rpi/led_state",
+    "/niryo_robot/rpi/is_button_pressed",
+    "/niryo_robot_sound/sound_database",
+    "/niryo_robot_sound/sound",
+    "/niryo_robot_sound/volume",
+    "/niryo_robot_tools_commander/current_id",
+    "/niryo_robot_tools_commander/tcp",
+    "/niryo_robot_vision/visualization_marker",
+    "/niryo_robot_vision/camera_intrinsics",
+    "/niryo_robot_vision/video_stream_parameters",
 }
 
 
@@ -40,7 +60,10 @@ class Topic:
         self._qos = self._get_ros2_qos_for_topic(topic_name)
         self._rosbridge_client = rosbridge_client
 
-        # Cache the ROS2 message class and type object
+        self._node.get_logger().debug(
+            f"Creating topic bridge for {topic_name} ({topic_types.ros1_type} → {topic_types.ros2_type})"
+        )
+
         self._ros2_type_str = topic_types.ros2_type
         self._ros2_msg_class = get_message(self._ros2_type_str)
 
@@ -92,9 +115,7 @@ class Topic:
         Converts the dictionary from roslibpy into a ROS2 message.
         """
         ros2_msg = self._ros2_msg_class()
-        self._node.get_logger().debug(f"INCOMING '{msg_dict}'")
         normalize_ros1_type_to_ros2(msg_dict, self._ros2_type_str)
-        self._node.get_logger().debug(f"Normalized '{msg_dict}'")
         try:
             set_message_fields(ros2_msg, msg_dict)
             self._ros2_publisher.publish(ros2_msg)

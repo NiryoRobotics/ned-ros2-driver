@@ -55,7 +55,6 @@ def launch_setup(context):
             package="niryo_ned_ros2_driver",
             executable="ros2_driver",
             name=f"ros2_driver_{ns if ns else 'default'}",
-            namespace=ns,
             parameters=[
                 {
                     "rosbridge_port": rosbridge_port,

@@ -2,6 +2,12 @@ import hashlib
 from tf2_msgs.msg import TFMessage
 from geometry_msgs.msg import TransformStamped
 from builtin_interfaces.msg import Time as Ros2Time
+from rclpy.qos import (
+    QoSProfile,
+    QoSDurabilityPolicy,
+    QoSReliabilityPolicy,
+    QoSHistoryPolicy,
+)
 
 from .topic import Topic
 
@@ -19,6 +25,13 @@ class StaticTFTopic(Topic):
 
         # Deduplication dictionary: (frame_id, child_frame_id)-> hash
         self._published_hashes = {}
+
+    def _get_ros2_qos_for_topic(self, topic_name: str) -> QoSProfile:
+        return QoSProfile(
+            reliability=QoSReliabilityPolicy.RELIABLE,
+            durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
+            history=QoSHistoryPolicy.KEEP_ALL,
+        )
 
     def _ros1_callback(self, msg_dict):
         if "transforms" not in msg_dict:

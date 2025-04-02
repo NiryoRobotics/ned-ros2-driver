@@ -79,9 +79,8 @@ class ROS2Driver:
         """
         Get topic types in parallel using ThreadPoolExecutor.
         """
-        max_workers = min(5, len(topic_names))
         topic_type_map = {}
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        with ThreadPoolExecutor(max_workers=32) as executor:
             future_to_topic = {
                 executor.submit(
                     self._safe_get_topic_type, self._rosbridge_client, topic

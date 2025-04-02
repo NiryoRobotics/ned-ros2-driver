@@ -15,9 +15,10 @@ from rosidl_runtime_py.convert import message_to_ordereddict
 import roslibpy
 
 from .models import ROSTypes
-from .utils.loopback_filter import HashedMessageLoopbackFilter
-from .utils.conversion import normalize_ros1_type_to_ros2
+from .utils.conversion import normalize_ros1_type_to_ros2, normalize_ros2_type_to_ros1
 from .utils.constants import LATCHED_ROS1_TOPICS
+from .utils.loopback_filter import LoopbackFilter
+from .utils.conversion import convert_ordereddict_to_dict
 
 
 class Topic:
@@ -36,14 +37,14 @@ class Topic:
         self._qos = self._get_ros2_qos_for_topic(topic_name)
         self._rosbridge_client = rosbridge_client
 
-        self._loopback_filter = HashedMessageLoopbackFilter()
-
         self._node.get_logger().debug(
             f"Creating topic bridge for {topic_name} ({topic_types.ros1_type} → {topic_types.ros2_type})"
         )
 
         self._ros2_type_str = topic_types.ros2_type
         self._ros2_msg_class = get_message(self._ros2_type_str)
+
+        self._loopback_filter = LoopbackFilter()
 
         self._ros2_subscriber = self._create_ros2_subscriber()
         self._ros2_publisher = self._create_ros2_publisher()
@@ -87,19 +88,22 @@ class Topic:
             self._rosbridge_client, self._topic_name, self._topic_types.ros1_type
         ).subscribe(self._ros1_callback)
 
-    def _ros1_callback(self, msg_dict):
+    def _ros1_callback(self, ros1_msg_dict):
         """
         Callback for the ROS1 subscriber.
         Converts the dictionary from roslibpy into a ROS2 message.
         """
-        if self._loopback_filter.should_skip_ros1_to_ros2(msg_dict):
-            return
-        self._loopback_filter.record_ros1_to_ros2(msg_dict)
 
-        ros2_msg = self._ros2_msg_class()
-        normalize_ros1_type_to_ros2(msg_dict, self._ros2_type_str)
+        # Normalize the ROS1 message to match the expected ROS2 format
+        normalize_ros1_type_to_ros2(ros1_msg_dict, self._ros2_type_str)
+
+        # Check if the message hash is cached, cache it and forward it if not
+        if not self._loopback_filter.should_forward(ros1_msg_dict):
+            return
+
         try:
-            set_message_fields(ros2_msg, msg_dict)
+            ros2_msg = self._ros2_msg_class()
+            set_message_fields(ros2_msg, ros1_msg_dict)
             self._ros2_publisher.publish(ros2_msg)
         except Exception as e:
             self._node.get_logger().error(
@@ -112,10 +116,17 @@ class Topic:
         """
         try:
             msg_dict = message_to_ordereddict(ros2_msg)
-            if self._loopback_filter.should_skip_ros2_to_ros1(msg_dict):
+            simple_dict = convert_ordereddict_to_dict(msg_dict)
+
+            # Check if the message hash is cached, cache it and forward it if not
+            if not self._loopback_filter.should_forward(simple_dict):
                 return
-            self._loopback_filter.record_ros2_to_ros1(msg_dict)
-            self._ros1_publisher.publish(msg_dict)
+
+            # Normalize the ROS2 message to match the expected ROS1 format after the loopback check
+            # This is important to ensure that the message format are similar for the hash comparison
+            # in the loopback filter
+            normalize_ros2_type_to_ros1(simple_dict)
+            self._ros1_publisher.publish(simple_dict)
         except Exception as e:
             self._node.get_logger().error(
                 f"Failed to convert ROS2 → ROS1 message for topic '{self._topic_name}': {e}"

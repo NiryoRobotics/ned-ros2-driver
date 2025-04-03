@@ -10,7 +10,6 @@ from rclpy.qos import (
 
 from rosidl_runtime_py.utilities import get_message
 from rosidl_runtime_py.set_message import set_message_fields
-from rosidl_runtime_py.convert import message_to_ordereddict
 
 import roslibpy
 
@@ -18,7 +17,7 @@ from .models import ROSTypes
 from .utils.conversion import normalize_ros1_type_to_ros2, normalize_ros2_type_to_ros1
 from .utils.constants import LATCHED_ROS1_TOPICS
 from .utils.loopback_filter import LoopbackFilter
-from .utils.conversion import convert_ordereddict_to_dict
+from .utils.conversion import ros2_message_to_dict
 
 
 class Topic:
@@ -115,18 +114,17 @@ class Topic:
         Callback for the ROS2 subscriber.
         """
         try:
-            msg_dict = message_to_ordereddict(ros2_msg)
-            simple_dict = convert_ordereddict_to_dict(msg_dict)
+            msg_dict = ros2_message_to_dict(ros2_msg)
 
             # Check if the message hash is cached, cache it and forward it if not
-            if not self._loopback_filter.should_forward(simple_dict):
+            if not self._loopback_filter.should_forward(msg_dict):
                 return
 
             # Normalize the ROS2 message to match the expected ROS1 format after the loopback check
             # This is important to ensure that the message format are similar for the hash comparison
             # in the loopback filter
-            normalize_ros2_type_to_ros1(simple_dict)
-            self._ros1_publisher.publish(simple_dict)
+            normalize_ros2_type_to_ros1(msg_dict)
+            self._ros1_publisher.publish(msg_dict)
         except Exception as e:
             self._node.get_logger().error(
                 f"Failed to convert ROS2 → ROS1 message for topic '{self._topic_name}': {e}"

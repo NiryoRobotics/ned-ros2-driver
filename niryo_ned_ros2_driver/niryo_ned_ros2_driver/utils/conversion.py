@@ -95,12 +95,28 @@ def normalize_ros2_type_to_ros1(obj: dict):
     recursive_normalize(obj)
 
 
-def convert_ordereddict_to_dict(obj: Any) -> Any:
-    if isinstance(obj, OrderedDict):
-        return {k: convert_ordereddict_to_dict(v) for k, v in obj.items()}
-    elif isinstance(obj, dict):
-        return {k: convert_ordereddict_to_dict(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [convert_ordereddict_to_dict(i) for i in obj]
+def ros2_message_to_dict(msg: Any) -> dict:
+    """
+    Recursively convert a ROS 2 message into a plain Python dict.
+
+    Handles nested messages and sequences.
+
+    :param msg: A ROS 2 message instance.
+    :return: A plain Python dictionary.
+    """
+    if hasattr(msg, "get_fields_and_field_types") and hasattr(msg, "SLOT_TYPES"):
+        result = {}
+        for field_name in msg.get_fields_and_field_types().keys():
+            value = getattr(msg, field_name)
+            result[field_name] = ros2_message_to_dict(value)
+        return result
+    elif isinstance(msg, (list, tuple)):
+        return [ros2_message_to_dict(item) for item in msg]
+    elif isinstance(msg, (bytes, bytearray)):
+        return msg.decode(errors="ignore")
+    elif isinstance(msg, (int, float, bool, str)):
+        return msg
+    elif isinstance(msg, dict):
+        return {k: ros2_message_to_dict(v) for k, v in msg.items()}
     else:
-        return obj
+        return str(msg)  # fallback for any unexpected types

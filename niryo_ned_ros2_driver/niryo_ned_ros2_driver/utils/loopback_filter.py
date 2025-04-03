@@ -50,12 +50,15 @@ class LoopbackFilter:
         checksum = self._compute_checksum(msg)
         now = time.monotonic()
 
-        # If any existing entry is still valid, block it
-        for cs, ts in self._checksum_cache:
-            if cs == checksum:
-                if now - ts <= self._ttl:
-                    return False
+        # Remove expired entries
+        self._checksum_cache = deque(
+            [(cs, ts) for cs, ts in self._checksum_cache if now - ts <= self._ttl],
+            maxlen=self._checksum_cache.maxlen,
+        )
 
-        # No recent duplicate, allow and record it
+        # Check for recent duplicate
+        if any(cs == checksum for cs, ts in self._checksum_cache):
+            return False
+
         self._checksum_cache.append((checksum, now))
         return True

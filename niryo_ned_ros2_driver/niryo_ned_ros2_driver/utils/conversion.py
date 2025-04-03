@@ -1,7 +1,6 @@
 # /usr/bin/env python3
 
 from typing import Dict, Any
-from collections import OrderedDict
 
 
 def normalize_ros1_type_to_ros2(obj: Dict[str, Any], ros2_type_str: str):

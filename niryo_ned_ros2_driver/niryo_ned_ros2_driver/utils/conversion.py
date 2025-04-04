@@ -1,6 +1,7 @@
 # /usr/bin/env python3
 
 from typing import Dict, Any
+import array
 
 
 def normalize_ros1_type_to_ros2(obj: Dict[str, Any], ros2_type_str: str):
@@ -109,6 +110,8 @@ def ros2_message_to_dict(msg: Any) -> dict:
             value = getattr(msg, field_name)
             result[field_name] = ros2_message_to_dict(value)
         return result
+    elif isinstance(msg, array.array):
+        return list(msg)
     elif isinstance(msg, (list, tuple)):
         return [ros2_message_to_dict(item) for item in msg]
     elif isinstance(msg, (bytes, bytearray)):

@@ -39,7 +39,7 @@ class LoopbackFilter:
         msg_str = json.dumps(msg, sort_keys=True, default=str)
         return hashlib.sha256(msg_str.encode("utf-8")).hexdigest()
 
-    def should_forward(self, msg: Dict[str, Any]) -> bool:
+    def should_forward(self, msg_to_hash: Dict[str, Any]) -> bool:
         """
         Check if a message should be forwarded.
         If allowed, the message's checksum is recorded with a timestamp.
@@ -47,7 +47,11 @@ class LoopbackFilter:
         Returns:
             bool: True if the message should be forwarded, False if it should be filtered.
         """
-        checksum = self._compute_checksum(msg)
+        # Hash only the header part if available
+        if msg_to_hash.get("header") is not None:
+            msg_to_hash = msg_to_hash["header"]
+
+        checksum = self._compute_checksum(msg_to_hash)
         now = time.monotonic()
 
         # Remove expired entries

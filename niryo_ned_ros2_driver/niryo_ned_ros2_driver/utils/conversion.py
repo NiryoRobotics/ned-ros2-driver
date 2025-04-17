@@ -33,6 +33,44 @@ def ros2_message_to_dict(msg: Any) -> dict:
         return str(msg)  # fallback for any unexpected types
 
 
+def ros2_service_response_from_ros1_dict(ros2_response: Any, ros1_dict: dict):
+    """
+    Recursively populate a ROS 2 service response instance from a ROS1 service response dictionary.
+
+    Handles nested types and lists.
+    """
+    # TODO(Thomas): Need to check if it is useful to call normalize_ROS1_type_to_ROS2() here
+
+    for key, value in ros1_dict.items():
+        # Ignore keys that are not in the ROS2 response
+        if not hasattr(ros2_response, key):
+            continue
+
+        field = getattr(ros2_response, key)
+
+        # Handle nested messages
+        if hasattr(field, "__slots__") and isinstance(value, dict):
+            nested_msg = type(field)()
+            ros2_service_response_from_ros1_dict(nested_msg, value)
+            setattr(ros2_response, key, nested_msg)
+
+        # Handle list of nested messages
+        elif isinstance(field, list) and isinstance(value, list):
+            list_field = []
+            for item in value:
+                # Use first item in the list to determine the type
+                if isinstance(item, dict) and field and hasattr(field[0], "__slots__"):
+                    nested_item = type(field[0])()
+                    ros2_service_response_from_ros1_dict(nested_item, item)
+                    list_field.append(nested_item)
+                else:
+                    list_field.append(item)
+            setattr(ros2_response, key, list_field)
+
+        else:
+            setattr(ros2_response, key, value)
+
+
 # ---------------------------- Conversion functions ---------------------------- #
 
 # ---------------------------- ROS1 -> ROS2 ---------------------------- #

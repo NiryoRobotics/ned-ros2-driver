@@ -1,5 +1,5 @@
-whitelist_interfaces: # Used only if use_whitelist=true
-  # - /joint_states
+whitelist_topics: # Used only if use_whitelist=true
+  - /joint_states
   # - /niryo_robot/robot_state
   # - /niryo_robot_follow_joint_trajectory_controller/command
   # - /niryo_robot_status/robot_status
@@ -8,5 +8,7 @@ whitelist_interfaces: # Used only if use_whitelist=true
   # - /niryo_robot_vision/camera_intrinsics
   # - /tf_static
   # - /tf
-  - /niryo_robot_follow_joint_trajectory_controller/command
+  # - /niryo_robot_follow_joint_trajectory_controller/command
   # - /test
+
+whitelist_services: {}

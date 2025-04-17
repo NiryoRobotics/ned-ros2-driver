@@ -1,12 +1,11 @@
 # /usr/bin/env python3
 
-import fnmatch
 from typing import Dict
 from .constants import BLACKLISTED_INTERFACES
 
 
 def matches_any(patterns, topic):
-    return any(fnmatch.fnmatch(topic, pattern) for pattern in patterns)
+    return topic in patterns
 
 
 def is_blacklisted_topic(topic: str) -> bool:

@@ -112,6 +112,7 @@ set(user_interface_msgs
 )
 
 set(vision_msgs
+  "msg/ActiveDebugTopics.msg"
   "msg/ImageParameters.msg"
 )
 

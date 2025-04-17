@@ -10,7 +10,7 @@ from .topic import Topic
 from .tf_static_topic import StaticTFTopic
 from .models import ROSTypes
 from .utils.type_mapping import convert_ros1_to_ros2_type
-from .utils.timing import measure_time
+from .utils.timing import execute_and_return_duration
 from .utils.filtering import filter_topics
 
 
@@ -46,22 +46,22 @@ class ROS2Driver:
             topic_names = whitelist_interfaces
         else:
             self._node.get_logger().debug("Retrieving topics...")
-            topic_names, duration, label = measure_time(
+            topic_names, duration, label = execute_and_return_duration(
                 "get_topics", self._rosbridge_client.get_topics
             )
             timings[label] = duration
 
-        topic_type_map, duration, label = measure_time(
+        topic_type_map, duration, label = execute_and_return_duration(
             "get_topic_types_parallel", self._get_topic_types_parallel, topic_names
         )
         timings[label] = duration
 
-        filtered_topics, duration, label = measure_time(
+        filtered_topics, duration, label = execute_and_return_duration(
             "filter_topics", filter_topics, topic_type_map
         )
         timings[label] = duration
 
-        _, duration, label = measure_time(
+        _, duration, label = execute_and_return_duration(
             "register_topics", self._register_topics, filtered_topics
         )
         timings[label] = duration

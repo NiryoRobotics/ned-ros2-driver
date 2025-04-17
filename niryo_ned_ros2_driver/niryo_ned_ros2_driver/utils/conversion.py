@@ -139,7 +139,7 @@ def convert_ros2_header_to_ros1(header: dict) -> dict:
     Convert ROS2 header format to ROS1 header format.
     """
     return {
-        "stamp": convert_ros2_time_to_ros1(header.get("stamp", {})),
+        "stamp": convert_ros2_time_to_ros1(header.get("stamp")),
         "frame_id": header.get("frame_id", ""),
     }
 

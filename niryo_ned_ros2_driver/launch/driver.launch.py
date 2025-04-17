@@ -22,11 +22,11 @@ def launch_setup(context):
     whitelist_filepath = LaunchConfiguration("whitelist_filepath").perform(context)
 
     with open(drivers_list_filepath, "r") as f:
-        driver_configs = yaml.safe_load(f)
+        drivers_list_config = yaml.safe_load(f)
 
-    robot_ips = driver_configs.get("robot_ips", {})
-    robot_namespaces = driver_configs.get("robot_namespaces", {})
-    rosbridge_port = driver_configs.get("rosbridge_port", {})
+    robot_ips = drivers_list_config.get("robot_ips", {})
+    robot_namespaces = drivers_list_config.get("robot_namespaces", {})
+    rosbridge_port = drivers_list_config.get("rosbridge_port", {})
 
     if len(robot_ips) != len(robot_namespaces):
         raise RuntimeError("Robot ips and robot namespaces must have the same length")
@@ -37,9 +37,10 @@ def launch_setup(context):
         raise RuntimeError("Robot namespaces must be unique")
 
     with open(whitelist_filepath, "r") as f:
-        driver_configs = yaml.safe_load(f)
+        driver_whitelists = yaml.safe_load(f)
 
-    whitelist_interfaces = driver_configs.get("whitelist_interfaces", {})
+    whitelist_topics = driver_whitelists.get("whitelist_topics", {})
+    whitelist_services = driver_whitelists.get("whitelist_services", {})
 
     driver_nodes = []
 
@@ -54,7 +55,8 @@ def launch_setup(context):
                     "robot_ip": ip,
                     "robot_namespace": ns,
                     "use_whitelist": use_whitelist,
-                    "whitelist_interfaces": whitelist_interfaces,
+                    "whitelist_topics": whitelist_topics,
+                    "whitelist_services": whitelist_services,
                 },
             ],
             arguments=["--ros-args", "--log-level", log_level],

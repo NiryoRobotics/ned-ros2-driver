@@ -29,10 +29,16 @@ class Bridge(Node):
             self.get_parameter("use_whitelist").get_parameter_value().bool_value
         )
 
-        whitelist_interfaces = []
+        whitelist_topics = []
+        whitelist_services = []
         if use_whitelist:
-            whitelist_interfaces = (
-                self.get_parameter("whitelist_interfaces")
+            whitelist_topics = (
+                self.get_parameter("whitelist_topics")
+                .get_parameter_value()
+                .string_array_value
+            )
+            whitelist_services = (
+                self.get_parameter("whitelist_services")
                 .get_parameter_value()
                 .string_array_value
             )
@@ -48,7 +54,8 @@ class Bridge(Node):
                 ip,
                 port,
                 use_whitelist,
-                whitelist_interfaces,
+                whitelist_topics,
+                whitelist_services,
             )
         except Exception as e:
             self.get_logger().error(f"Failed to create driver: {e}")
@@ -62,7 +69,6 @@ class Bridge(Node):
             "rosbridge_port",
             9090,
             descriptor=ParameterDescriptor(
-                name="rosbridge_port",
                 type=ParameterType.PARAMETER_INTEGER,
                 description="Port for the ROSBridge server",
             ),
@@ -88,19 +94,26 @@ class Bridge(Node):
             "use_whitelist",
             False,
             descriptor=ParameterDescriptor(
-                name="use_whitelist",
                 type=ParameterType.PARAMETER_BOOL,
                 description="Whether only a subset of interfaces should be bridged",
             ),
         )
 
         self.declare_parameter(
-            "whitelist_interfaces",
+            "whitelist_topics",
             [""],
             descriptor=ParameterDescriptor(
-                name="whitelist_interfaces",
                 type=ParameterType.PARAMETER_STRING_ARRAY,
-                description="List of whitelisted interfaces if use_whitelist is True",
+                description="List of whitelisted topics if use_whitelist is True",
+            ),
+        )
+
+        self.declare_parameter(
+            "whitelist_services",
+            [""],
+            descriptor=ParameterDescriptor(
+                type=ParameterType.PARAMETER_STRING_ARRAY,
+                description="List of whitelisted services if use_whitelist is True",
             ),
         )
 

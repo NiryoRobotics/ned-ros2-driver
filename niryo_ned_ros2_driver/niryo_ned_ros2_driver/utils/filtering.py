@@ -27,11 +27,11 @@ def is_non_existing_ros2_topic_type(topic: str) -> bool:
 def filter_topics(topic_type_map: Dict[str, str]) -> Dict[str, str]:
     result = {}
     for topic, topic_type in topic_type_map.items():
-        if is_action_topic(topic):
-            continue
-        if is_non_existing_ros2_topic_type(topic_type):
-            continue
-        if is_blacklisted_topic(topic):
+        if (
+            is_action_topic(topic)
+            or is_non_existing_ros2_topic_type(topic_type)
+            or is_blacklisted_topic(topic)
+        ):
             continue
         result[topic] = topic_type
     return result

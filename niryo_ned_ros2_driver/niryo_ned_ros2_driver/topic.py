@@ -14,7 +14,7 @@ from rosidl_runtime_py.set_message import set_message_fields
 import roslibpy
 
 from .models import ROSTypes
-from .utils.conversion import normalize_ros1_type_to_ros2, normalize_ros2_type_to_ros1
+from .utils.conversion import normalize_ROS1_type_to_ROS2, normalize_ROS2_type_to_ROS1
 from .utils.constants import LATCHED_ROS1_TOPICS
 from .utils.loopback_filter import LoopbackFilter
 from .utils.conversion import ros2_message_to_dict
@@ -94,7 +94,7 @@ class Topic:
         """
 
         # Normalize the ROS1 message to match the expected ROS2 format
-        normalize_ros1_type_to_ros2(ros1_msg_dict, self._ros2_type_str)
+        normalize_ROS1_type_to_ROS2(ros1_msg_dict, self._ros2_type_str)
 
         # Check if the message hash is cached, cache it and forward it if not
         if not self._loopback_filter.should_forward(ros1_msg_dict):
@@ -123,7 +123,7 @@ class Topic:
             # Normalize the ROS2 message to match the expected ROS1 format after the loopback check
             # This is important to ensure that the message format are similar for the hash comparison
             # in the loopback filter
-            normalize_ros2_type_to_ros1(msg_dict)
+            normalize_ROS2_type_to_ROS1(msg_dict)
             self._ros1_publisher.publish(msg_dict)
         except Exception as e:
             self._node.get_logger().error(

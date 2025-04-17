@@ -270,6 +270,7 @@ set(vision_srvs
   "srv/SetImageParameter.srv"
   "srv/TakePicture.srv"
   "srv/Visualization.srv"
+  "srv/ActivateDebugTopics.srv"
 )
 
 set(srv_files

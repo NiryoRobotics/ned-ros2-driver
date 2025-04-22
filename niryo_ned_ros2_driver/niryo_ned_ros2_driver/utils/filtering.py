@@ -42,9 +42,7 @@ def is_action_topic(topic: str) -> bool:
 
 
 def is_non_existing_ros2_type(topic: str) -> bool:
-    return any(
-        topic.startswith(incompatible) for incompatible in INCOMPATIBLE_TYPES
-    )
+    return any(topic.startswith(incompatible) for incompatible in INCOMPATIBLE_TYPES)
 
 
 def filter_topics(

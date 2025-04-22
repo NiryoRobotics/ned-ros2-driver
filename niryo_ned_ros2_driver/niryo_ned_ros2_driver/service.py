@@ -69,10 +69,11 @@ class Service:
 
         try:
             # Convert the ROS1 dict response to a ROS2 response message
-            self._convert_ros1_response_to_ros2(ros1_result, response)
             ros2_service_response_from_ros1_dict(response, ros1_result)
         except AttributeError as e:
             self._node.get_logger().error(
                 f"Failed to convert ROS1 → ROS2 service response for service {self._service_name}: {e}"
             )
             raise
+
+        return response

@@ -14,7 +14,7 @@ from .tf_static_topic import StaticTFTopic
 from .models import ROSTypes
 from .utils.type_mapping import convert_ros1_to_ros2_type
 from .utils.debug import execute_and_return_duration
-from .utils.filtering import filter_topics
+from .utils.filtering import filter_topics, filter_services
 
 
 class ROS2Driver:
@@ -48,10 +48,10 @@ class ROS2Driver:
             timings=timings,
         )
 
-        # services = self._get_services(
-        #     service_whitelist=service_whitelist,
-        #     timings=timings,
-        # )
+        services = self._get_services(
+            service_whitelist=service_whitelist,
+            timings=timings,
+        )
 
         # Register interfaces
         _, duration, label = execute_and_return_duration(
@@ -59,10 +59,10 @@ class ROS2Driver:
         )
         timings[label] = duration
 
-        # _, duration, label = execute_and_return_duration(
-        #     "register_services", self._register_services, services
-        # )
-        # timings[label] = duration
+        _, duration, label = execute_and_return_duration(
+            "register_services", self._register_services, services
+        )
+        timings[label] = duration
 
         self._node.get_logger().debug("=== Topic setup timings (in seconds) ===")
         for step, duration in timings.items():
@@ -102,9 +102,13 @@ class ROS2Driver:
         )
         timings[label] = duration
 
-        # TODO filter
+        # Filter the topics to remove excluded ones
+        filtered_services, duration, label = execute_and_return_duration(
+            "filter_services", filter_services, service_type_map, service_whitelist
+        )
+        timings[label] = duration
 
-        return service_type_map
+        return filtered_services
 
     def _register_services(self, services: dict):
         """

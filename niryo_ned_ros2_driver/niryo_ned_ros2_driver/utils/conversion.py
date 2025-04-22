@@ -3,6 +3,35 @@
 from typing import Dict, Any, Callable
 import array
 
+from rosidl_runtime_py.utilities import get_message
+
+PRIMITIVE_TYPES = {
+    "bool",
+    "byte",
+    "char",
+    "float",
+    "float32",
+    "float64",
+    "double",
+    "short",
+    "int",
+    "long",
+    "int8",
+    "uint8",
+    "int16",
+    "uint16",
+    "int32",
+    "uint32",
+    "int64",
+    "uint64",
+    "string",
+    "wstring",
+}
+
+
+def is_primitive_type(type_str: str) -> bool:
+    return type_str in PRIMITIVE_TYPES
+
 
 def ros2_message_to_dict(msg: Any) -> dict:
     """
@@ -39,36 +68,48 @@ def ros2_service_response_from_ros1_dict(ros2_response: Any, ros1_dict: dict):
 
     Handles nested types and lists.
     """
-    # TODO(Thomas): Need to check if it is useful to call normalize_ROS1_type_to_ROS2() here
+    if not hasattr(ros2_response, "get_fields_and_field_types"):
+        raise TypeError(f"{ros2_response} is not a ROS 2 message")
 
-    for key, value in ros1_dict.items():
-        # Ignore keys that are not in the ROS2 response
-        if not hasattr(ros2_response, key):
+    field_types = ros2_response.get_fields_and_field_types()
+    for field_name, ros1_value in ros1_dict.items():
+        if not hasattr(ros2_response, field_name):
             continue
 
-        field = getattr(ros2_response, key)
-
-        # Handle nested messages
-        if hasattr(field, "__slots__") and isinstance(value, dict):
-            nested_msg = type(field)()
-            ros2_service_response_from_ros1_dict(nested_msg, value)
-            setattr(ros2_response, key, nested_msg)
+        field_type_str = field_types[field_name]
 
         # Handle list of nested messages
-        elif isinstance(field, list) and isinstance(value, list):
-            list_field = []
-            for item in value:
-                # Use first item in the list to determine the type
-                if isinstance(item, dict) and field and hasattr(field[0], "__slots__"):
-                    nested_item = type(field[0])()
-                    ros2_service_response_from_ros1_dict(nested_item, item)
-                    list_field.append(nested_item)
-                else:
-                    list_field.append(item)
-            setattr(ros2_response, key, list_field)
+        if field_type_str.startswith("sequence<") and isinstance(ros1_value, list):
+            inner_type = field_type_str[len("sequence<") : -1]
 
+            # Handle primitive types
+            if is_primitive_type(inner_type):
+                setattr(ros2_response, field_name, ros1_value)
+                continue
+
+            msg_class = get_message(inner_type)
+
+            ros2_list = []
+            for item in ros1_value:
+                if isinstance(item, dict):
+                    nested_msg = msg_class()
+                    ros2_service_response_from_ros1_dict(nested_msg, item)
+                    ros2_list.append(nested_msg)
+                else:
+                    ros2_list.append(item)
+
+            setattr(ros2_response, field_name, ros2_list)
+
+        # # Handle nested messages
+        elif isinstance(ros1_value, dict):
+            msg_class = get_message(field_type_str)
+            nested_msg = msg_class()
+            ros2_service_response_from_ros1_dict(nested_msg, ros1_value)
+            setattr(ros2_response, field_name, nested_msg)
+
+        # Handle base types
         else:
-            setattr(ros2_response, key, value)
+            setattr(ros2_response, field_name, ros1_value)
 
 
 # ---------------------------- Conversion functions ---------------------------- #

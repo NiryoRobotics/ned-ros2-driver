@@ -24,9 +24,8 @@ class ROS2Driver:
         namespace: str,
         ip: str,
         port: int,
-        use_whitelist: bool,
-        whitelist_topics: list[str],
-        whitelist_services: list[str],
+        topic_whitelist: list[str],
+        service_whitelist: list[str],
     ):
         self._node = node
         self._namespace = namespace
@@ -45,26 +44,25 @@ class ROS2Driver:
 
         # Get interfaces
         topics = self._get_topics(
-            use_whitelist=use_whitelist,
-            whitelist_topics=whitelist_topics,
+            topic_whitelist=topic_whitelist,
             timings=timings,
         )
 
-        services = self._get_services(
-            use_whitelist=use_whitelist,
-            whitelist_services=whitelist_services,
-            timings=timings,
-        )
+        # services = self._get_services(
+        #     service_whitelist=service_whitelist,
+        #     timings=timings,
+        # )
 
         # Register interfaces
-        # _, duration, label = execute_and_return_duration(
-        #     "register_topics", self._register_topics, topics
-        # )
-        # timings[label] = duration
+        _, duration, label = execute_and_return_duration(
+            "register_topics", self._register_topics, topics
+        )
+        timings[label] = duration
 
         # _, duration, label = execute_and_return_duration(
         #     "register_services", self._register_services, services
         # )
+        # timings[label] = duration
 
         self._node.get_logger().debug("=== Topic setup timings (in seconds) ===")
         for step, duration in timings.items():
@@ -77,33 +75,23 @@ class ROS2Driver:
 
     def _get_services(
         self,
-        use_whitelist: bool = False,
-        whitelist_services: list[str] = [],
+        service_whitelist: list[str] = [],
         timings: dict = {},
     ):
         """
-        Get all the services available on the ROS1 side or use the whitelist.
+        Get all the services available on the ROS1 side and filter them.
 
         Args:
-            use_whitelist (bool): Whether to use the whitelist.
-            whitelist_services (list[str]): List of whitelisted services.
+            service_whitelist (list[str]): List of regex for whitelisted services.
             timings (dict): Dictionary to store timings for each step. Only for debug purpose.
         Returns:
             Services (dict[str, str]): Dictionnary with keys as service names and values as their types.
         """
-        # Get all the services available on the ROS1 side or use the whitelist
-        if use_whitelist:
-            self._node.get_logger().debug(
-                f"Using whitelisted services: {whitelist_services}"
-            )
-            service_names = whitelist_services
-        else:
-            self._node.get_logger().debug("Retrieving services...")
-
-            service_names, duration, label = execute_and_return_duration(
-                "get_services", self._rosbridge_client.get_services
-            )
-            timings[label] = duration
+        self._node.get_logger().debug("Retrieving services...")
+        service_names, duration, label = execute_and_return_duration(
+            "get_services", self._rosbridge_client.get_services
+        )
+        timings[label] = duration
 
         # Get the types of the services
         service_type_map, duration, label = execute_and_return_duration(
@@ -113,6 +101,8 @@ class ROS2Driver:
             self._rosbridge_client.get_service_type,
         )
         timings[label] = duration
+
+        # TODO filter
 
         return service_type_map
 
@@ -143,33 +133,23 @@ class ROS2Driver:
 
     def _get_topics(
         self,
-        use_whitelist: bool = False,
-        whitelist_topics: list[str] = [],
+        topic_whitelist: list[str] = [],
         timings: dict = {},
     ):
         """
-        Get all the topics available on the ROS1 side or use the whitelist
-        and filter them to remove excluded ones.
+        Get all the topics available on the ROS1 side and filter them.
 
         Args:
-            use_whitelist (bool): Whether to use the whitelist.
-            whitelist_topics (list[str]): List of whitelisted topics.
+            topic_whitelist (list[str]): List of regex for whitelisted topics.
             timings (dict): Dictionary to store timings for each step. Only for debug purpose.
         Returns:
             Topics (dict[str, str]): Dictionary with keys as topic names and values as their types.
         """
-        # Get all the topics available on the ROS1 side or use the whitelist
-        if use_whitelist:
-            self._node.get_logger().debug(
-                f"Using whitelisted topics: {whitelist_topics}"
-            )
-            topic_names = whitelist_topics
-        else:
-            self._node.get_logger().debug("Retrieving topics...")
-            topic_names, duration, label = execute_and_return_duration(
-                "get_topics", self._rosbridge_client.get_topics
-            )
-            timings[label] = duration
+        self._node.get_logger().debug("Retrieving topics...")
+        topic_names, duration, label = execute_and_return_duration(
+            "get_topics", self._rosbridge_client.get_topics
+        )
+        timings[label] = duration
 
         # Get the types of the topics
         topic_type_map, duration, label = execute_and_return_duration(
@@ -182,7 +162,7 @@ class ROS2Driver:
 
         # Filter the topics to remove excluded ones
         filtered_topics, duration, label = execute_and_return_duration(
-            "filter_topics", filter_topics, topic_type_map
+            "filter_topics", filter_topics, topic_type_map, topic_whitelist
         )
         timings[label] = duration
 

@@ -257,6 +257,7 @@ set(poses_handlers_srvs
 set(led_ring_srvs
   "srv/LedUser.srv"
   "srv/SetLedColor.srv"
+  "srv/GetLedColors.srv"
 )
 
 set(cpu_srvs

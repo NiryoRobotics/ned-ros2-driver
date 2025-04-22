@@ -2,7 +2,7 @@
 
 import re
 from typing import Dict, List
-from .constants import BLACKLISTED_INTERFACES
+from .constants import BLACKLISTED_INTERFACES, INCOMPATIBLE_TYPES
 
 
 def compile_regex_list(regex_list: List[str]) -> List[re.Pattern]:
@@ -42,9 +42,8 @@ def is_action_topic(topic: str) -> bool:
 
 
 def is_non_existing_ros2_type(topic: str) -> bool:
-    incompatible_topic_types = ["dynamic_reconfigure", "rosgraph_msgs", "bond"]
     return any(
-        topic.startswith(incompatible) for incompatible in incompatible_topic_types
+        topic.startswith(incompatible) for incompatible in INCOMPATIBLE_TYPES
     )
 
 

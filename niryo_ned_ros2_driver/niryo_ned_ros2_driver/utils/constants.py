@@ -17,16 +17,20 @@ ROS1_INTERFACE_PACKAGES = [
     "niryo_robot_rpi",
     "niryo_robot_sound",
     "niryo_robot_status",
+    "niryo_robot_reports",
     "end_effector_interface",
     "joints_interface",
     "tools_interface",
+    "conveyor_interface",
     "ttl_driver",
 ]
 BLACKLISTED_INTERFACES = [
-    "/niryo_robot_programs_manager/program_list",
-    "/niryo_robot_programs_manager/program_is_running",
+    "/niryo_robot_programs_manager/.*",
     "/connected_clients",
     "/niryo_robot_follow_joint_trajectory_controller/state",  # TODO(Thomas): we might need to find a solution to reabilitate this topic
+    "/rosapi/.*",
+    "/republish_tfs",
+    "/foxglove_nodelet_manager/.*",
 ]
 LATCHED_ROS1_TOPICS = {
     "/niryo_robot_status/robot_status",
@@ -54,3 +58,4 @@ LATCHED_ROS1_TOPICS = {
     "/niryo_robot_vision/camera_intrinsics",
     "/niryo_robot_vision/video_stream_parameters",
 }
+INCOMPATIBLE_TYPES = ["dynamic_reconfigure", "rosgraph_msgs", "bond", "roscpp"]

@@ -181,7 +181,7 @@ class ROS2Driver:
         Get interface types in parallel using ThreadPoolExecutor.
         """
         interface_type_map = {}
-        with ThreadPoolExecutor(max_workers=32) as executor:
+        with ThreadPoolExecutor() as executor:
             future_to_interface = {
                 executor.submit(
                     self._safe_get_type, interface_type_getter, interface

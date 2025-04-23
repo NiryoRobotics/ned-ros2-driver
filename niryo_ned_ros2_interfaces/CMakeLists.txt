@@ -66,8 +66,6 @@ set(database_msgs
 
 set(programs_manager_msgs
   "msg/Program.msg"
-  "msg/ProgramLanguage.msg"
-  "msg/ProgramIsRunning.msg"
   "msg/ProgramList.msg"
 )
 
@@ -114,6 +112,7 @@ set(user_interface_msgs
 )
 
 set(vision_msgs
+  "msg/ActiveDebugTopics.msg"
   "msg/ImageParameters.msg"
 )
 
@@ -206,11 +205,9 @@ set(database_srvs
 set(programs_manager_srvs
   "srv/CreateProgram.srv"
   "srv/DeleteProgram.srv"
-  "srv/ExecuteProgram.srv"
   "srv/GetProgram.srv"
   "srv/GetProgramAutorunInfos.srv"
   "srv/GetProgramList.srv"
-  "srv/ManageProgram.srv"
   "srv/SetProgramAutorun.srv"
   "srv/UpdateProgram.srv"
 )

@@ -7,6 +7,12 @@
   <maintainer email="t.degallaix@niryo.com">Thomas Degallaix</maintainer>
   <license>Apache-2.0</license>
 
+  <depend>rclpy</depend>
+  <depend>roslibpy-pip</depend>
+
+  <exec_depend>moveit_msgs</exec_depend>
+  <exec_depend>niryo_ned_ros2_interfaces</exec_depend>
+
   <test_depend>python3-pytest</test_depend>
 
   <export>

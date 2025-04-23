@@ -14,19 +14,20 @@ logger = logging.get_logger("ned_ros2_driver.launch")
 
 
 def launch_setup(context):
-    use_whitelist = LaunchConfiguration("use_whitelist")
     log_level = LaunchConfiguration("log_level")
-    drivers_list_filepath = LaunchConfiguration("drivers_list_filepath").perform(
+    drivers_list_file = LaunchConfiguration("drivers_list_file").perform(context)
+    whitelist_params_file = LaunchConfiguration("whitelist_params_file").perform(
         context
     )
-    whitelist_filepath = LaunchConfiguration("whitelist_filepath").perform(context)
+    topic_whitelist = LaunchConfiguration("topic_whitelist")
+    service_whitelist = LaunchConfiguration("service_whitelist")
 
-    with open(drivers_list_filepath, "r") as f:
-        driver_configs = yaml.safe_load(f)
+    with open(drivers_list_file, "r") as f:
+        drivers_list_config = yaml.safe_load(f)
 
-    robot_ips = driver_configs.get("robot_ips", {})
-    robot_namespaces = driver_configs.get("robot_namespaces", {})
-    rosbridge_port = driver_configs.get("rosbridge_port", {})
+    robot_ips = drivers_list_config.get("robot_ips", {})
+    robot_namespaces = drivers_list_config.get("robot_namespaces", {})
+    rosbridge_port = drivers_list_config.get("rosbridge_port", {})
 
     if len(robot_ips) != len(robot_namespaces):
         raise RuntimeError("Robot ips and robot namespaces must have the same length")
@@ -36,27 +37,30 @@ def launch_setup(context):
     if len(set(robot_namespaces)) != len(robot_namespaces):
         raise RuntimeError("Robot namespaces must be unique")
 
-    with open(whitelist_filepath, "r") as f:
-        driver_configs = yaml.safe_load(f)
-
-    whitelist_interfaces = driver_configs.get("whitelist_interfaces", {})
-
     driver_nodes = []
 
     for ip, ns in zip(robot_ips, robot_namespaces):
+        params_dict = {
+            "rosbridge_port": rosbridge_port,
+            "robot_ip": ip,
+            "robot_namespace": ns,
+            "topic_whitelist": topic_whitelist,
+            "service_whitelist": service_whitelist,
+        }
+
+        params = [params_dict]
+        if whitelist_params_file:
+            if not os.path.isfile(whitelist_params_file):
+                raise RuntimeError(
+                    f"Whitelist params file not found: {whitelist_params_file}"
+                )
+            params.append(whitelist_params_file)
+
         driver_node = Node(
             package="niryo_ned_ros2_driver",
             executable="ros2_driver",
             name=f"ros2_driver_{ns if ns else 'default'}",
-            parameters=[
-                {
-                    "rosbridge_port": rosbridge_port,
-                    "robot_ip": ip,
-                    "robot_namespace": ns,
-                    "use_whitelist": use_whitelist,
-                    "whitelist_interfaces": whitelist_interfaces,
-                },
-            ],
+            parameters=params,
             arguments=["--ros-args", "--log-level", log_level],
         )
 
@@ -74,15 +78,9 @@ def generate_launch_description():
         "drivers_list.yaml",
     )
 
-    default_whitelist_filepath = os.path.join(
-        get_package_share_directory("niryo_ned_ros2_driver"),
-        "config",
-        "whitelist.yaml",
-    )
-
     declared_arguments.append(
         DeclareLaunchArgument(
-            "drivers_list_filepath",
+            "drivers_list_file",
             default_value=drivers_list_filepath,
             description="Path to the drivers list file",
         )
@@ -90,17 +88,33 @@ def generate_launch_description():
 
     declared_arguments.append(
         DeclareLaunchArgument(
-            "use_whitelist",
-            default_value="false",
-            description="Whether only a subset of interfaces should be bridged",
+            "whitelist_params_file",
+            default_value="",
+            description="Optional path to a parameter file with whitelist parameters",
+        ),
+    )
+
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "whitelist_params_file",
+            default_value="",
+            description="Optional path to a parameter file with whitelist parameters",
+        ),
+    )
+
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "topic_whitelist",
+            default_value="['.*']",
+            description="List of regex patterns for whitelisted topics",
         )
     )
 
     declared_arguments.append(
         DeclareLaunchArgument(
-            "whitelist_filepath",
-            default_value=default_whitelist_filepath,
-            description="Path to the whitelist file",
+            "service_whitelist",
+            default_value="['.*']",
+            description="List of regex patterns for whitelisted services",
         )
     )
 

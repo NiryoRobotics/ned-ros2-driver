@@ -25,17 +25,16 @@ class Bridge(Node):
             rclpy.shutdown()
             sys.exit(1)
 
-        use_whitelist = (
-            self.get_parameter("use_whitelist").get_parameter_value().bool_value
+        topic_whitelist = (
+            self.get_parameter("topic_whitelist")
+            .get_parameter_value()
+            .string_array_value
         )
-
-        whitelist_interfaces = []
-        if use_whitelist:
-            whitelist_interfaces = (
-                self.get_parameter("whitelist_interfaces")
-                .get_parameter_value()
-                .string_array_value
-            )
+        service_whitelist = (
+            self.get_parameter("service_whitelist")
+            .get_parameter_value()
+            .string_array_value
+        )
 
         self.get_logger().info(
             f"Creating driver for robot with IP: {ip} and port: {port}"
@@ -47,8 +46,8 @@ class Bridge(Node):
                 namespace,
                 ip,
                 port,
-                use_whitelist,
-                whitelist_interfaces,
+                topic_whitelist=topic_whitelist,
+                service_whitelist=service_whitelist,
             )
         except Exception as e:
             self.get_logger().error(f"Failed to create driver: {e}")
@@ -62,7 +61,6 @@ class Bridge(Node):
             "rosbridge_port",
             9090,
             descriptor=ParameterDescriptor(
-                name="rosbridge_port",
                 type=ParameterType.PARAMETER_INTEGER,
                 description="Port for the ROSBridge server",
             ),
@@ -85,22 +83,20 @@ class Bridge(Node):
         )
 
         self.declare_parameter(
-            "use_whitelist",
-            False,
+            "topic_whitelist",
+            [".*"],
             descriptor=ParameterDescriptor(
-                name="use_whitelist",
-                type=ParameterType.PARAMETER_BOOL,
-                description="Whether only a subset of interfaces should be bridged",
+                type=ParameterType.PARAMETER_STRING_ARRAY,
+                description="List of regex patterns for whitelisted topics",
             ),
         )
 
         self.declare_parameter(
-            "whitelist_interfaces",
-            [""],
+            "service_whitelist",
+            [".*"],
             descriptor=ParameterDescriptor(
-                name="whitelist_interfaces",
                 type=ParameterType.PARAMETER_STRING_ARRAY,
-                description="List of whitelisted interfaces if use_whitelist is True",
+                description="List of regex patterns for whitelisted services",
             ),
         )
 

@@ -257,6 +257,7 @@ set(poses_handlers_srvs
 set(led_ring_srvs
   "srv/LedUser.srv"
   "srv/SetLedColor.srv"
+  "srv/GetLedColors.srv"
 )
 
 set(cpu_srvs
@@ -270,6 +271,7 @@ set(vision_srvs
   "srv/SetImageParameter.srv"
   "srv/TakePicture.srv"
   "srv/Visualization.srv"
+  "srv/ActivateDebugTopics.srv"
 )
 
 set(srv_files

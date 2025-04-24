@@ -40,6 +40,7 @@ class Topic:
         self._rosbridge_client = rosbridge_client
 
         self._is_subscribed = False
+        self._is_published = False
 
         self._node.get_logger().debug(
             f"Creating topic bridge for {topic_name} ({topic_types.ros1_type} → {topic_types.ros2_type})"
@@ -57,26 +58,48 @@ class Topic:
         self._ros1_subscriber = None
 
         self._node.create_timer(
-            timer_period_sec=1.0, callback=self._check_subscription_count
+            timer_period_sec=1.0, callback=self._subscription_manager_loop
         )
 
-    def _check_subscription_count(self):
+    def _subscription_manager_loop(self):
         """
-        Check the subscription count for the ROS2 topic.
-        Once the topic is subscribed, instanciate the subscribers.
+        This function is called periodically to check the status of the
+        subscribers and publishers for the ROS2 topic.
+        It will create or destroy the ROS1 subscriber and the ROS2 subscriber
+        depending on its status.
         """
+        self._handle_subscriber()
+        self._handle_publisher()
 
-        if (
-            self._ros2_publisher.get_subscription_count() > 0
-            and not self._is_subscribed
-        ):
-            self._ros2_subscriber = self._create_ros2_subscriber()
+    def _handle_subscriber(self):
+        """
+        Check the subscriber count for the ROS2 topic.
+        Once the topic is subscribed, instanciate the ROS1 subscriber.
+        """
+        num_subscribers = self._node.count_subscribers(
+            f"{self._prefix}{self._topic_name}"
+        )
+        if num_subscribers >= 0 and not self._is_subscribed:
             self._ros1_subscriber = self._create_ros1_subscriber(self._ros1_publisher)
             self._is_subscribed = True
-        if self._ros2_publisher.get_subscription_count() == 1 and self._is_subscribed:
+        elif num_subscribers == 0 and self._is_subscribed:
             self._ros1_publisher.unsubscribe()
-            self._node.destroy_subscription(self._ros2_subscriber)
             self._is_subscribed = False
+
+    def _handle_publisher(self):
+        """
+        Check the publisher count for the ROS2 topic.
+        Once the topic is published, instanciate the ROS2 subscriber.
+        """
+        num_publishers = self._node.count_publishers(
+            f"{self._prefix}{self._topic_name}"
+        )
+        if num_publishers > 1 and not self._is_published:
+            self._ros2_subscriber = self._create_ros2_subscriber()
+            self._is_published = True
+        elif num_publishers == 1 and self._is_published:
+            self._node.destroy_subscription(self._ros2_subscriber)
+            self._is_published = False
 
     def _create_ros2_publisher(self):
         """

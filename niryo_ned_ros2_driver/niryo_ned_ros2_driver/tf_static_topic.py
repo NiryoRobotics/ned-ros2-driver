@@ -60,6 +60,10 @@ class StaticTFTopic(Topic):
             tf_msg = TFMessage(transforms=transforms_to_publish)
             self._ros2_publisher.publish(tf_msg)
 
+    def _ros2_callback(self, msg):
+        # Static TFs are not published from ROS2 to ROS1
+        pass
+
     def _convert_to_ros2_transform(self, t, parent, child):
         ros2_t = TransformStamped()
         ros2_t.header.stamp = self._convert_time(t["header"]["stamp"])

@@ -39,6 +39,8 @@ class Topic:
         self._qos = self._get_ros2_qos_for_topic(topic_name)
         self._rosbridge_client = rosbridge_client
 
+        self._is_subscribed = False
+
         self._node.get_logger().debug(
             f"Creating topic bridge for {topic_name} ({topic_types.ros1_type} → {topic_types.ros2_type})"
         )
@@ -48,10 +50,35 @@ class Topic:
 
         self._loopback_filter = LoopbackFilter()
 
-        self._ros2_subscriber = self._create_ros2_subscriber()
-        self._ros2_publisher = self._create_ros2_publisher()
-        self._ros1_subscriber = self._create_ros1_subscriber()
         self._ros1_publisher = self._create_ros1_publisher()
+        self._ros2_publisher = self._create_ros2_publisher()
+
+        self._ros2_subscriber = None
+        self._ros1_subscriber = None
+
+        self._node.create_timer(
+            timer_period_sec=1.0, callback=self._check_subscription_count
+        )
+
+    def _check_subscription_count(self):
+        """
+        Check the subscription count for the ROS2 topic.
+        Once the topic is subscribed, instanciate the subscribers.
+        """
+
+        if (
+            self._ros2_publisher.get_subscription_count() > 0
+            and not self._is_subscribed
+        ):
+            self._node.get_logger().info("SUBSCRIBE")
+            self._ros2_subscriber = self._create_ros2_subscriber()
+            self._ros1_subscriber = self._create_ros1_subscriber(self._ros1_publisher)
+            self._is_subscribed = True
+        if self._ros2_publisher.get_subscription_count() == 1 and self._is_subscribed:
+            self._node.get_logger().info("UNSUBSCRIBE")
+            self._ros1_publisher.unsubscribe()
+            self._node.destroy_subscription(self._ros2_subscriber)
+            self._is_subscribed = False
 
     def _create_ros2_publisher(self):
         """
@@ -82,13 +109,11 @@ class Topic:
             self._rosbridge_client, self._topic_name, self._topic_types.ros1_type
         )
 
-    def _create_ros1_subscriber(self):
+    def _create_ros1_subscriber(self, topic: roslibpy.Topic):
         """
         Create a ROS1 subscriber for the topic.
         """
-        return roslibpy.Topic(
-            self._rosbridge_client, self._topic_name, self._topic_types.ros1_type
-        ).subscribe(self._ros1_callback)
+        return topic.subscribe(self._ros1_callback)
 
     def _ros1_callback(self, ros1_msg_dict):
         """
@@ -102,6 +127,10 @@ class Topic:
         # Check if the message hash is cached, cache it and forward it if not
         if not self._loopback_filter.should_forward(ros1_msg_dict):
             return
+
+        self._node.get_logger().info(
+            f"Publishing ROS1 message to ROS2 topic '{self._topic_name}'"
+        )
 
         try:
             ros2_msg = self._ros2_msg_class()
@@ -122,6 +151,10 @@ class Topic:
             # Check if the message hash is cached, cache it and forward it if not
             if not self._loopback_filter.should_forward(msg_dict):
                 return
+
+            self._node.get_logger().info(
+                f"Publishing ROS2 message to ROS1 topic '{self._topic_name}'"
+            )
 
             # Normalize the ROS2 message to match the expected ROS1 format after the loopback check
             # This is important to ensure that the message format are similar for the hash comparison

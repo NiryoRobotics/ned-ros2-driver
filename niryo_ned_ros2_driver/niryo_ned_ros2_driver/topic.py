@@ -14,10 +14,13 @@ from rosidl_runtime_py.set_message import set_message_fields
 import roslibpy
 
 from .models import ROSTypes
-from .utils.conversion import normalize_ROS1_type_to_ROS2, normalize_ROS2_type_to_ROS1
+from .utils.conversion import (
+    ros2_message_to_dict,
+    normalize_ROS1_type_to_ROS2,
+    normalize_ROS2_type_to_ROS1,
+)
 from .utils.constants import LATCHED_ROS1_TOPICS
 from .utils.loopback_filter import LoopbackFilter
-from .utils.conversion import ros2_message_to_dict
 
 
 class Topic:

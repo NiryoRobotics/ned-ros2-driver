@@ -22,12 +22,14 @@ class Service:
         service_types: ROSTypes,
         prefix: str,
         rosbridge_client: roslibpy.Ros,
+        callback_group,
     ):
         self._node = node
         self._service_name = service_name
         self._service_types = service_types
         self._prefix = prefix
         self._rosbridge_client = rosbridge_client
+        self._callback_group = callback_group
 
         self._node.get_logger().debug(
             f"Creating service bridge for {service_name} ({service_types.ros1_type} → {service_types.ros2_type})"
@@ -56,6 +58,7 @@ class Service:
             self._ros2_srv_class,
             f"{self._prefix}{self._service_name}",
             self._ros2_callback,
+            callback_group=self._callback_group,
         )
 
     def _ros2_callback(self, request, response):

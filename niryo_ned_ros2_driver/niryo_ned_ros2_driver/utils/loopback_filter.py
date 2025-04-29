@@ -39,6 +39,14 @@ class LoopbackFilter:
         msg_str = json.dumps(msg, sort_keys=True, default=str)
         return hashlib.sha256(msg_str.encode("utf-8")).hexdigest()
 
+    @property
+    def ttl(self):
+        return self._ttl
+
+    @ttl.setter
+    def ttl(self, value):
+        self._ttl = value
+
     def should_forward(self, msg_to_hash: Dict[str, Any]) -> bool:
         """
         Check if a message should be forwarded.

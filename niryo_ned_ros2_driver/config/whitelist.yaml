@@ -5,3 +5,6 @@
 
     service_whitelist:
       - /.*
+
+    action_whitelist:
+      - /.*

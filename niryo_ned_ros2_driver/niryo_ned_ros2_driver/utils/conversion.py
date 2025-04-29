@@ -3,8 +3,6 @@
 from typing import Dict, Any, Callable
 import array
 
-from rosidl_runtime_py.utilities import get_message
-
 PRIMITIVE_TYPES = {
     "bool",
     "byte",
@@ -60,56 +58,6 @@ def ros2_message_to_dict(msg: Any) -> dict:
         return {k: ros2_message_to_dict(v) for k, v in msg.items()}
     else:
         return str(msg)  # fallback for any unexpected types
-
-
-def ros2_service_response_from_ros1_dict(ros2_response: Any, ros1_dict: dict):
-    """
-    Recursively populate a ROS 2 service response instance from a ROS1 service response dictionary.
-
-    Handles nested types and lists.
-    """
-    if not hasattr(ros2_response, "get_fields_and_field_types"):
-        raise TypeError(f"{ros2_response} is not a ROS 2 message")
-
-    field_types = ros2_response.get_fields_and_field_types()
-    for field_name, ros1_value in ros1_dict.items():
-        if not hasattr(ros2_response, field_name):
-            continue
-
-        field_type_str = field_types[field_name]
-
-        # Handle list of nested messages
-        if field_type_str.startswith("sequence<") and isinstance(ros1_value, list):
-            inner_type = field_type_str[len("sequence<") : -1]
-
-            # Handle primitive types
-            if is_primitive_type(inner_type):
-                setattr(ros2_response, field_name, ros1_value)
-                continue
-
-            msg_class = get_message(inner_type)
-
-            ros2_list = []
-            for item in ros1_value:
-                if isinstance(item, dict):
-                    nested_msg = msg_class()
-                    ros2_service_response_from_ros1_dict(nested_msg, item)
-                    ros2_list.append(nested_msg)
-                else:
-                    ros2_list.append(item)
-
-            setattr(ros2_response, field_name, ros2_list)
-
-        # # Handle nested messages
-        elif isinstance(ros1_value, dict):
-            msg_class = get_message(field_type_str)
-            nested_msg = msg_class()
-            ros2_service_response_from_ros1_dict(nested_msg, ros1_value)
-            setattr(ros2_response, field_name, nested_msg)
-
-        # Handle base types
-        else:
-            setattr(ros2_response, field_name, ros1_value)
 
 
 # ---------------------------- Conversion functions ---------------------------- #
@@ -223,6 +171,18 @@ def convert_ros2_header_to_ros1(header: dict) -> dict:
     }
 
 
+def convert_ROS2_Follow_joint_traj_goal_to_ROS1(obj: Dict[str, Any]):
+    obj.pop("multi_dof_trajectory", None)
+    obj.pop("component_path_tolerance", None)
+    obj.pop("component_goal_tolerance", None)
+
+
+# Useful when we have access to the message type
+ROS2_TO_ROS1_TYPE_CONVERSIONS: Dict[str, Callable] = {
+    "control_msgs/FollowJointTrajectoryAction": convert_ROS2_Follow_joint_traj_goal_to_ROS1,
+}
+
+
 ROS2_TO_ROS1_FIELD_CONVERSIONS: Dict[str, Callable] = {
     "header": convert_ros2_header_to_ros1,
     "stamp": convert_ros2_time_to_ros1,
@@ -242,8 +202,11 @@ def recursive_ros2_fields_to_ros1_normalization(o: Any):
             recursive_ros2_fields_to_ros1_normalization(item)
 
 
-def normalize_ROS2_type_to_ROS1(obj: dict):
+def normalize_ROS2_type_to_ROS1(obj: dict, ros1_type_str: str):
     """
     Applies type-specific normalization of a ROS2 message dict to fit expected ROS1 format.
     """
     recursive_ros2_fields_to_ros1_normalization(obj)
+
+    if ros1_type_str in ROS2_TO_ROS1_TYPE_CONVERSIONS:
+        ROS2_TO_ROS1_TYPE_CONVERSIONS[ros1_type_str](obj)

@@ -76,3 +76,19 @@ def filter_services(
             continue
         result[service] = service_type
     return result
+
+
+def filter_actions(
+    action_type_map: Dict[str, str], whitelist_regex_patterns: List[str]
+) -> Dict[str, str]:
+    result = {}
+    compiled_patterns = compile_regex_list(whitelist_regex_patterns)
+    for action, action_type in action_type_map.items():
+        if (
+            not is_whitelisted(action, compiled_patterns)
+            or is_non_existing_ros2_type(action_type)
+            or is_blacklisted(action)
+        ):
+            continue
+        result[action] = action_type
+    return result

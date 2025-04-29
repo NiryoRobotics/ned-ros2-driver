@@ -171,6 +171,18 @@ def convert_ros2_header_to_ros1(header: dict) -> dict:
     }
 
 
+def convert_ROS2_Follow_joint_traj_goal_to_ROS1(obj: Dict[str, Any]):
+    obj.pop("multi_dof_trajectory", None)
+    obj.pop("component_path_tolerance", None)
+    obj.pop("component_goal_tolerance", None)
+
+
+# Useful when we have access to the message type
+ROS2_TO_ROS1_TYPE_CONVERSIONS: Dict[str, Callable] = {
+    "control_msgs/FollowJointTrajectoryAction": convert_ROS2_Follow_joint_traj_goal_to_ROS1,
+}
+
+
 ROS2_TO_ROS1_FIELD_CONVERSIONS: Dict[str, Callable] = {
     "header": convert_ros2_header_to_ros1,
     "stamp": convert_ros2_time_to_ros1,
@@ -190,8 +202,11 @@ def recursive_ros2_fields_to_ros1_normalization(o: Any):
             recursive_ros2_fields_to_ros1_normalization(item)
 
 
-def normalize_ROS2_type_to_ROS1(obj: dict):
+def normalize_ROS2_type_to_ROS1(obj: dict, ros1_type_str: str):
     """
     Applies type-specific normalization of a ROS2 message dict to fit expected ROS1 format.
     """
     recursive_ros2_fields_to_ros1_normalization(obj)
+
+    if ros1_type_str in ROS2_TO_ROS1_TYPE_CONVERSIONS:
+        ROS2_TO_ROS1_TYPE_CONVERSIONS[ros1_type_str](obj)

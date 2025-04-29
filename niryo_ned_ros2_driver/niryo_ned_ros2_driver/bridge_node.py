@@ -2,6 +2,7 @@
 
 import sys
 import rclpy
+from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 
@@ -35,6 +36,11 @@ class Bridge(Node):
             .get_parameter_value()
             .string_array_value
         )
+        action_whitelist = (
+            self.get_parameter("action_whitelist")
+            .get_parameter_value()
+            .string_array_value
+        )
 
         self.get_logger().info(
             f"Creating driver for robot with IP: {ip} and port: {port}"
@@ -48,6 +54,7 @@ class Bridge(Node):
                 port,
                 topic_whitelist=topic_whitelist,
                 service_whitelist=service_whitelist,
+                action_whitelist=action_whitelist,
             )
         except Exception as e:
             self.get_logger().error(f"Failed to create driver: {e}")
@@ -100,17 +107,32 @@ class Bridge(Node):
             ),
         )
 
+        self.declare_parameter(
+            "action_whitelist",
+            [".*"],
+            descriptor=ParameterDescriptor(
+                type=ParameterType.PARAMETER_STRING_ARRAY,
+                description="List of regex patterns for whitelisted actions",
+            ),
+        )
+
 
 def main():
     rclpy.init()
 
     node = Bridge()
 
-    rclpy.spin(node)
+    executor = MultiThreadedExecutor()
 
-    node.destroy_node()
-
-    rclpy.shutdown()
+    try:
+        rclpy.spin(node, executor=executor)
+    except KeyboardInterrupt:
+        node.get_logger().info("Keyboard interrupt received. Exiting...")
+    except Exception as e:
+        node.get_logger().error(f"Exception in bridge main loop: {e}")
+    finally:
+        node.shutdown()
+        rclpy.shutdown()
 
 
 if __name__ == "__main__":

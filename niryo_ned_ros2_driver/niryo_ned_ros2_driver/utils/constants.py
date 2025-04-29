@@ -31,6 +31,8 @@ BLACKLISTED_INTERFACES = [
     "/rosapi/.*",
     "/republish_tfs",
     "/foxglove_nodelet_manager/.*",
+    ".*/get_loggers",
+    ".*/set_logger_level",
 ]
 LATCHED_ROS1_TOPICS = {
     "/niryo_robot_status/robot_status",
@@ -58,4 +60,10 @@ LATCHED_ROS1_TOPICS = {
     "/niryo_robot_vision/camera_intrinsics",
     "/niryo_robot_vision/video_stream_parameters",
 }
+ROS1_ACTIONS = [
+    "/niryo_robot_arm_commander/robot_action",
+    "/niryo_robot_follow_joint_trajectory_controller/follow_joint_trajectory",
+    "/niryo_robot_programs_manager_v2/execute_program",
+    "/niryo_robot_tools_commander/action_server",
+]
 INCOMPATIBLE_TYPES = ["dynamic_reconfigure", "rosgraph_msgs", "bond", "roscpp"]

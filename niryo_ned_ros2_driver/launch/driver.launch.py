@@ -21,6 +21,7 @@ def launch_setup(context):
     )
     topic_whitelist = LaunchConfiguration("topic_whitelist")
     service_whitelist = LaunchConfiguration("service_whitelist")
+    action_whitelist = LaunchConfiguration("action_whitelist")
 
     with open(drivers_list_file, "r") as f:
         drivers_list_config = yaml.safe_load(f)
@@ -46,6 +47,7 @@ def launch_setup(context):
             "robot_namespace": ns,
             "topic_whitelist": topic_whitelist,
             "service_whitelist": service_whitelist,
+            "action_whitelist": action_whitelist,
         }
 
         params = [params_dict]
@@ -115,6 +117,14 @@ def generate_launch_description():
             "service_whitelist",
             default_value="['.*']",
             description="List of regex patterns for whitelisted services",
+        )
+    )
+
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "action_whitelist",
+            default_value="['.*']",
+            description="List of regex patterns for whitelisted actions",
         )
     )
 

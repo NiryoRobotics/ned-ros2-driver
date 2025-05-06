@@ -51,6 +51,7 @@ class Topic:
             f"Creating topic bridge for {topic_name} ({topic_types.ros1_type} → {topic_types.ros2_type})"
         )
 
+        self._ros1_type_str = topic_types.ros1_type
         self._ros2_type_str = topic_types.ros2_type
         self._ros2_msg_class = get_message(self._ros2_type_str)
 
@@ -194,7 +195,7 @@ class Topic:
             # Normalize the ROS2 message to match the expected ROS1 format after the loopback check
             # This is important to ensure that the message format are similar for the hash comparison
             # in the loopback filter
-            normalize_ROS2_type_to_ROS1(msg_dict)
+            normalize_ROS2_type_to_ROS1(msg_dict, self._topic_types.ros1_type)
             self._ros1_publisher.publish(msg_dict)
         except Exception as e:
             self._node.get_logger().error(

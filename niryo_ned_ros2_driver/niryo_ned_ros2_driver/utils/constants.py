@@ -33,6 +33,9 @@ BLACKLISTED_INTERFACES = [
     "/foxglove_nodelet_manager/.*",
     ".*/get_loggers",
     ".*/set_logger_level",
+    "/move_group/display_contacts",
+    "/clear_octomap",
+    "/controller_manager/.*",
 ]
 LATCHED_ROS1_TOPICS = {
     "/niryo_robot_status/robot_status",
@@ -66,4 +69,10 @@ ROS1_ACTIONS = [
     "/niryo_robot_programs_manager_v2/execute_program",
     "/niryo_robot_tools_commander/action_server",
 ]
-INCOMPATIBLE_TYPES = ["dynamic_reconfigure", "rosgraph_msgs", "bond", "roscpp"]
+INCOMPATIBLE_TYPES = [
+    "dynamic_reconfigure",
+    "rosgraph_msgs",
+    "bond",
+    "roscpp",
+    "moveit_msgs",
+]

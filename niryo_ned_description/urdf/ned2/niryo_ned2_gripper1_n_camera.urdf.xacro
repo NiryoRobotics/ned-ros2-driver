@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="niryo_ned2_gripper1_n_camera">
+
+    <xacro:include filename="$(find niryo_ned_description)/urdf/ned2/niryo_ned2.urdf.xacro"/>
+
+    <xacro:include filename="$(find niryo_ned_description)/urdf/ned2/niryo_ned2_camera.urdf.xacro"/>
+
+    <xacro:include filename="$(find niryo_ned_description)/urdf/tools/niryo_gripper1.urdf.xacro"/>
+
+    <!-- Joint from tool_link to base_gripper -->
+    <joint name="joint_to_gripper" type="fixed">
+        <parent link="tool_link"/>
+        <child link="base_gripper_1"/>
+        <origin
+                xyz="-0.007 0 0.003"
+                rpy="${-PI/2} ${PI/2} 0"/>
+    </joint>
+
+
+</robot>

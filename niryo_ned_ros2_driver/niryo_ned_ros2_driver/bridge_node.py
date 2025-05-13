@@ -131,7 +131,6 @@ def main():
     except Exception as e:
         node.get_logger().error(f"Exception in bridge main loop: {e}")
     finally:
-        node.shutdown()
         rclpy.shutdown()
 
 

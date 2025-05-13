@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="niryo_ned2">
+
+    <!-- Properties -->
+    <xacro:property name="cameraWidth" value="0.01"/>
+    <xacro:property name="cameraHeight" value="0.037"/>
+    <xacro:property name="cameraMass" value="0.05"/>
+
+    <!-- Joint for camera -->
+    <joint name="camera_joint" type="fixed">
+        <axis xyz="0 0 1"/>
+        <origin xyz="${cameraHeight/2 + 0.02} 0 0" rpy="0 0 ${-PI/2+deg_to_rad*10}"/>
+        <parent link="wrist_link"/>
+        <child link="camera_link"/>
+    </joint>
+
+    <!-- Camera link -->
+
+    <link name="camera_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <box size="${cameraWidth} ${cameraHeight} ${cameraHeight}"/>
+            </geometry>
+            <material name="Grey">
+               <color rgba="0.7 0.7 0.7 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0"
+                    rpy="0 0 0"/>
+            <geometry>
+                <box size="${cameraWidth} ${cameraHeight} ${cameraHeight}"/>
+            </geometry>
+        </collision>
+    </link>
+</robot>

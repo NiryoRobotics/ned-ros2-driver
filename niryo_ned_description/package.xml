@@ -5,7 +5,7 @@
   <version>0.0.0</version>
   <description>Ned's description package</description>
   <maintainer email="t.degallaix@niryo.com">Thomas Degallaix</maintainer>
-  <license>Apache-2.0</license>
+  <license>BSD-3-Clause</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 

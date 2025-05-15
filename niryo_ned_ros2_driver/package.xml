@@ -5,10 +5,9 @@
   <version>0.0.0</version>
   <description>ROS2 driver for Niryo's Ned robots</description>
   <maintainer email="t.degallaix@niryo.com">Thomas Degallaix</maintainer>
-  <license>Apache-2.0</license>
+  <license>BSD-3-Clause</license>
 
   <depend>rclpy</depend>
-  <depend>roslibpy-pip</depend>
 
   <exec_depend>moveit_msgs</exec_depend>
   <exec_depend>controller_manager_msgs</exec_depend>

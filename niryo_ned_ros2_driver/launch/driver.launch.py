@@ -98,14 +98,6 @@ def generate_launch_description():
 
     declared_arguments.append(
         DeclareLaunchArgument(
-            "whitelist_params_file",
-            default_value="",
-            description="Optional path to a parameter file with whitelist parameters",
-        ),
-    )
-
-    declared_arguments.append(
-        DeclareLaunchArgument(
             "topic_whitelist",
             default_value="['.*']",
             description="List of regex patterns for whitelisted topics",

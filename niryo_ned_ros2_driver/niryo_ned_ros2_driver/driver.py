@@ -13,7 +13,7 @@ from .topic import Topic
 from .service import Service
 from .action import Action
 from .tf_static_topic import StaticTFTopic
-from .models import ROSTypes
+from .utils.models import ROSTypes
 from .utils.type_mapping import (
     convert_ros1_to_ros2_type,
     guess_action_type_from_goal_type,

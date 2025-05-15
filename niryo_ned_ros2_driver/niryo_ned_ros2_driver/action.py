@@ -13,7 +13,7 @@ from rosidl_runtime_py.set_message import set_message_fields
 import roslibpy
 import roslibpy.actionlib
 
-from .models import ROSTypes
+from .utils.models import ROSTypes
 from .utils.conversion import (
     ros2_message_to_dict,
     normalize_ROS1_type_to_ROS2,

@@ -95,13 +95,6 @@ def convert_ROS1_duration_to_ROS2(ros1_duration: dict) -> dict:
     }
 
 
-def convert_ROS1_marker_array_to_ROS2(obj: Dict[str, Any]):
-    for marker in obj.get("markers"):
-        if isinstance(marker, dict):
-            marker["header"] = convert_ROS1_header_to_ROS2(marker.get("header"))
-            marker["lifetime"] = convert_ROS1_duration_to_ROS2(marker.get("lifetime"))
-
-
 def convert_ROS1_camera_info_to_ROS2(obj: Dict[str, Any]):
     for cap in ("D", "K", "R", "P"):
         if cap in obj:
@@ -110,7 +103,6 @@ def convert_ROS1_camera_info_to_ROS2(obj: Dict[str, Any]):
 
 # Useful when we have access to the message type
 ROS1_TO_ROS2_TYPE_CONVERSIONS: Dict[str, Callable] = {
-    "visualization_msgs/msg/MarkerArray": convert_ROS1_marker_array_to_ROS2,
     "sensor_msgs/msg/CameraInfo": convert_ROS1_camera_info_to_ROS2,
 }
 
@@ -119,6 +111,7 @@ ROS1_TO_ROS2_FIELD_CONVERSIONS: Dict[str, Callable] = {
     "header": convert_ROS1_header_to_ROS2,
     "time_from_start": convert_ROS1_duration_to_ROS2,
     "stamp": convert_ROS1_time_to_ROS2,
+    "lifetime": convert_ROS1_duration_to_ROS2,
 }
 
 
@@ -187,6 +180,7 @@ ROS2_TO_ROS1_FIELD_CONVERSIONS: Dict[str, Callable] = {
     "header": convert_ros2_header_to_ros1,
     "stamp": convert_ros2_time_to_ros1,
     "time_from_start": convert_ros2_duration_to_ros1,
+    "goal_time_tolerance": convert_ros2_duration_to_ros1,
 }
 
 

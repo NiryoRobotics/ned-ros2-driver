@@ -19,7 +19,7 @@ setup(
     maintainer="Thomas Degallaix",
     maintainer_email="t.degallaix@niryo.com",
     description="ROS2 driver for Niryo's Ned robots",
-    license="Apache-2.0",
+    license="BSD-3-Clause",
     tests_require=["pytest"],
     entry_points={
         "console_scripts": [

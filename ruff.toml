@@ -27,6 +27,7 @@ exclude = [
     "site-packages",
     "venv",
     "niryo_ned_ros2_interfaces",
+    "niryo_ned_moveit_config",
     "test"
 ]
 

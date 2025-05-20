@@ -120,10 +120,15 @@ class ROS2Driver:
             callback_group=self._callback_group,
         )
 
-    def __del__(self):
+    def disconnect(self):
+        """
+        Disconnect the ROSBridge client and destroy the timer.
+        """
         if self._rosbridge_client.is_connected:
             self._rosbridge_client.terminate()
-            self._node.get_logger().info("ROSBridge connection closed.")
+        if self._topic_management_timer:
+            self._node.destroy_timer(self._topic_management_timer)
+            self._topic_management_timer = None
 
     def _manage_topics(self):
         """

@@ -15,6 +15,8 @@
   <exec_depend>niryo_ned_ros2_interfaces</exec_depend>
 
   <test_depend>python3-pytest</test_depend>
+  <test_depend>launch_testing</test_depend>
+  <test_depend>launch_pytest</test_depend>
 
   <export>
     <build_type>ament_python</build_type>

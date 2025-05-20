@@ -144,6 +144,10 @@ class Bridge(Node):
             ),
         )
 
+    def shutdown(self):
+        if hasattr(self, "_driver"):
+            self._driver.disconnect()
+
 
 def main():
     rclpy.init()
@@ -155,11 +159,13 @@ def main():
     try:
         rclpy.spin(node, executor=executor)
     except KeyboardInterrupt:
-        node.get_logger().info("Keyboard interrupt received. Exiting...")
+        pass
     except Exception as e:
         node.get_logger().error(f"Exception in bridge main loop: {e}")
     finally:
-        rclpy.shutdown()
+        node.shutdown()
+        executor.shutdown()
+        node.destroy_node()
 
 
 if __name__ == "__main__":

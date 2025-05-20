@@ -81,7 +81,7 @@ class Action:
         """
         return roslibpy.actionlib.ActionClient(
             self._rosbridge_client,
-            f"{self._prefix}{self._action_name}",
+            f"{self._action_name}",
             self._action_types.ros1_type,
         )
 

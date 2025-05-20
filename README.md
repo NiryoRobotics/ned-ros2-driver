@@ -235,6 +235,7 @@ To check if your drivers are connected and working:
 ros2 node list
 ```
 You should see a node for each robot with their namespaces, e.g.: `/ros2_driver_robot1`, `/ros2_driver_robot2` or if running only one drivr `/ros2_driver_default`
+
 2. View available topics
 ```bash
 ros2 topic list

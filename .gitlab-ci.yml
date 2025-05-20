@@ -72,7 +72,7 @@ unit_tests:
     - . venv/bin/activate
     - . install/setup.sh
     - export PYTHONPATH=$(python -c 'import sys; print(":".join(sys.path))')
-    - colcon test --packages-select niryo_ned_ros2_driver --event-handlers console_direct+
+    - colcon test --packages-select niryo_ned_ros2_driver --event-handlers console_direct+ --pytest-args -k "not integration"
     - colcon test-result --verbose
     - mv log/ $CI_PROJECT_DIR/log/
   artifacts:

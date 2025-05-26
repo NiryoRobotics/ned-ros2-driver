@@ -1,5 +1,0 @@
----
-int32 status
-string message
-bool markers_detected
-sensor_msgs/CompressedImage img

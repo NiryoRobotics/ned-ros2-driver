@@ -1,2 +1,0 @@
-std_msgs/Header header
-niryo_ned_ros2_interfaces/MotorHardwareStatus[] motors_hw_status

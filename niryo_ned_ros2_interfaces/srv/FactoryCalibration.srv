@@ -1,9 +1,0 @@
-int8 START=2
-int8 STOP=4
-
-
-uint8 command
-uint8[] ids
----
-int32 status
-string message

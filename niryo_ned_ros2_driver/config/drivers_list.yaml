@@ -1,8 +1,0 @@
-rosbridge_port: 9090
-robot_namespaces:
-  - ""
-robot_ips:
-  - "0.0.0.0" # To edit with your own robot IP
-
-
-    

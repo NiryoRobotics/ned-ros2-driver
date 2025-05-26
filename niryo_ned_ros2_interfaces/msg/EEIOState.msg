@@ -1,2 +1,0 @@
-bool digital_input
-bool digital_output

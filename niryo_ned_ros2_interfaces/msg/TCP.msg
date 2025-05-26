@@ -1,5 +1,0 @@
-bool enabled
-
-geometry_msgs/Point position
-niryo_ned_ros2_interfaces/RPY rpy
-geometry_msgs/Quaternion orientation

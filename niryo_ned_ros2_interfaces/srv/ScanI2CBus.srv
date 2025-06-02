@@ -1,0 +1,7 @@
+---
+int32 status
+string message
+
+bool is_ok
+niryo_ned_ros2_interfaces/I2CComponent[] missing
+niryo_ned_ros2_interfaces/I2CComponent[] detected

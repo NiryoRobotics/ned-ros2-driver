@@ -1,0 +1,5 @@
+niryo_ned_ros2_interfaces/RobotState pose
+---
+int32 status
+string message
+float32[] joints

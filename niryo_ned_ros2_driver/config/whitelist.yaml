@@ -1,0 +1,10 @@
+/**:
+  ros__parameters:
+    topic_whitelist:
+      - /.*
+
+    service_whitelist:
+      - /.*
+
+    action_whitelist:
+      - /.*

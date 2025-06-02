@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>niryo_ned_ros2_driver</name>
+  <version>0.0.0</version>
+  <description>ROS2 driver for Niryo's Ned robots</description>
+  <maintainer email="t.degallaix@niryo.com">Thomas Degallaix</maintainer>
+  <license>BSD-3-Clause</license>
+
+  <depend>rclpy</depend>
+
+  <exec_depend>moveit_msgs</exec_depend>
+  <exec_depend>controller_manager_msgs</exec_depend>
+  <exec_depend>control_msgs</exec_depend>
+  <exec_depend>niryo_ned_ros2_interfaces</exec_depend>
+
+  <test_depend>python3-pytest</test_depend>
+  <test_depend>launch_testing</test_depend>
+  <test_depend>launch_pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

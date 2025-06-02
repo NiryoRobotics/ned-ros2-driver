@@ -1,0 +1,82 @@
+stages:
+  - lint
+  - build
+  - test
+
+variables:
+  ROS_DISTRO: jazzy
+  WORKSPACE_DIR: /ros2_drivers_ws
+
+.base_ruff:
+  stage: lint
+  interruptible: true
+  image:
+    name: ghcr.io/astral-sh/ruff:0.11.2-alpine
+  before_script:
+    - cd $CI_PROJECT_DIR
+    - ruff --version
+
+Ruff Check:
+  extends: .base_ruff
+  script:
+    - ruff check --output-format=gitlab > code-quality-report.json
+  artifacts:
+    reports:
+      codequality: $CI_PROJECT_DIR/code-quality-report.json
+
+Ruff Format:
+  extends: .base_ruff
+  script:
+    - ruff format --diff
+
+# Base configuration for ROS2 tests
+.ros2_base:
+  image: ros:$ROS_DISTRO-ros-base
+  before_script:
+    - apt-get update
+    - apt-get install -y --no-install-recommends python3-pip python3-venv python3-colcon-common-extensions python3-pytest python3-pytest-cov python3-rosdep
+    - mkdir -p $WORKSPACE_DIR/src
+    - cp -r $CI_PROJECT_DIR/* $WORKSPACE_DIR/src
+    - cd $WORKSPACE_DIR
+    - rosdep update
+    - rosdep install --from-paths src --ignore-src -r -y
+    - python3 -m venv venv --system-site-packages
+    - . venv/bin/activate
+    - pip install --upgrade pip
+    - pip install -r $WORKSPACE_DIR/src/requirements.txt
+
+build:
+  extends: .ros2_base
+  stage: build
+  script:
+    - cd $WORKSPACE_DIR
+    - . /opt/ros/$ROS_DISTRO/setup.sh
+    - . venv/bin/activate
+    - colcon build
+    - cp -r install/ $CI_PROJECT_DIR/install/
+    - cp -r build/ $CI_PROJECT_DIR/build/
+  artifacts:
+    paths:
+      - install
+      - build
+    expire_in: 1 hour
+
+unit_tests:
+  extends: .ros2_base
+  stage: test
+  script:
+    - cp -r $CI_PROJECT_DIR/install/ $WORKSPACE_DIR/install
+    - cp -r $CI_PROJECT_DIR/build/ $WORKSPACE_DIR/build
+    - cd $WORKSPACE_DIR
+    - . /opt/ros/$ROS_DISTRO/setup.sh
+    - . venv/bin/activate
+    - . install/setup.sh
+    - export PYTHONPATH=$(python -c 'import sys; print(":".join(sys.path))')
+    - colcon test --packages-select niryo_ned_ros2_driver --event-handlers console_direct+ --pytest-args -k "not integration"
+    - colcon test-result --verbose
+    - mv log/ $CI_PROJECT_DIR/log/
+  artifacts:
+    paths:
+      - log
+    when: always
+    expire_in: 1 week

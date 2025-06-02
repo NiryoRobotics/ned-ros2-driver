@@ -2,6 +2,7 @@ stages:
   - lint
   - build
   - test
+  - release
 
 variables:
   ROS_DISTRO: jazzy
@@ -80,3 +81,24 @@ unit_tests:
       - log
     when: always
     expire_in: 1 week
+
+mirror_github:
+  stage: release
+  before_script:
+    - mkdir -p ~/.ssh
+    - eval $(ssh-agent -s)
+    - echo "$GIT_SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
+  script:
+    # Mirror main and tags to GitHub
+    - git clone --mirror "$CI_REPOSITORY_URL" bare_mirror
+    - cd bare_mirror
+    - git push --force $GH_REPOSITORY_URL main
+    - git push --force --tags $GH_REPOSITORY_URL
+  variables:
+    GIT_STRATEGY: none
+    GH_REPOSITORY_URL: git@github.com:NiryoRobotics/ned-ros2-driver.git
+  rules:
+    - if: $CI_COMMIT_TAG
+
+

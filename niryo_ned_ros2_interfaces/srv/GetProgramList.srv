@@ -1,0 +1,4 @@
+---
+int32 status
+string message
+niryo_ned_ros2_interfaces/Program[] programs

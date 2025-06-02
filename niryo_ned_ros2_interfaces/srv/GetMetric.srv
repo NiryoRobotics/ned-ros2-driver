@@ -1,0 +1,4 @@
+string name
+---
+int32 status
+niryo_ned_ros2_interfaces/Metric metric

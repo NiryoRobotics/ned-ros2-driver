@@ -1,0 +1,4 @@
+niryo_ned_ros2_interfaces/Service service
+---
+int32 status
+bool result

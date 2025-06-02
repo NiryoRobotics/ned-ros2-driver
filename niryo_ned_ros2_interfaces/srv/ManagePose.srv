@@ -1,0 +1,8 @@
+int32 cmd
+int32 SAVE = 1
+int32 DELETE = -1
+
+niryo_ned_ros2_interfaces/NiryoPose pose
+---
+int32 status
+string message

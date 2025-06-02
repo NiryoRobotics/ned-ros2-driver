@@ -1,0 +1,14 @@
+/**:
+  ros__parameters:
+    topic_whitelist:
+      - "/joint_states"
+      - "/tf.*"
+      - "/niryo_robot/.*"
+      - "/niryo_robot_status/.*"
+      - "/niryo_robot_hardware_interface/.*"
+
+    service_whitelist:
+      - "/niryo_robot_.*/.*"
+
+    action_whitelist:
+      - "/.*"

@@ -1,0 +1,4 @@
+niryo_ned_ros2_interfaces/ActiveDebugTopics topics
+---
+int32 status
+string message

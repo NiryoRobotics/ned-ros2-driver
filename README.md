@@ -281,7 +281,7 @@ The driver bridges all topics, services, and actions from the Niryo NED robot to
 | `/niryo_robot_tools_commander/action_server` | niryo_ned_ros2_interfaces/action/Tool | Execute a a tool command |
 
 
-For more informations about the available interfaces, please refer to [the Ned's ROS documentation](https://niryorobotics.github.io/beta_ned_ros_doc/index.html).
+For more informations about the available interfaces, please refer to [the Ned's ROS documentation](https://niryorobotics.github.io/ned_ros/).
 
 ## Limitations
 

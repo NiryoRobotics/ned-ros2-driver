@@ -168,20 +168,20 @@ def convert_ROS1_duration_to_ROS2(ros1_duration: dict) -> dict:
         "nanosec": ros1_duration.get("nsecs", 0),
     }
 
+
 def convert_ROS1_compressed_image_to_ROS2(obj: Dict[str, Any]):
     """
     Convert a ROS1 CompressedImage message to ROS2 format.
-    
+
     This function specifically handles the 'data' field in CompressedImage messages,
     ensuring it's properly converted from a string representation to a bytes array.
-    
+
     Args:
         obj (Dict[str, Any]): A dictionary containing CompressedImage data in ROS1 format
     """
-    if 'data' in obj and isinstance(obj['data'], str):
-        base64_bytes = obj['data'].encode('ascii')
-        obj['data'] = base64.b64decode(base64_bytes)
-
+    if "data" in obj and isinstance(obj["data"], str):
+        base64_bytes = obj["data"].encode("ascii")
+        obj["data"] = base64.b64decode(base64_bytes)
 
 
 def convert_ROS1_camera_info_to_ROS2(obj: Dict[str, Any]):

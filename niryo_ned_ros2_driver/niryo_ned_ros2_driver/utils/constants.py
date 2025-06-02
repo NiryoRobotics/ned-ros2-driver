@@ -64,7 +64,7 @@ BLACKLISTED_INTERFACES = [
     "/move_group/display_contacts",
     "/clear_octomap",
     "/controller_manager/.*",
-    "/rviz.*"
+    "/rviz.*",
 ]
 LATCHED_ROS1_TOPICS = {
     "/niryo_robot_status/robot_status",

@@ -277,7 +277,7 @@ The driver bridges all topics, services, and actions from the Niryo NED robot to
 | Action | Type | Description |
 |--------|------|-------------|
 | `/niryo_robot_follow_joint_trajectory_controller/follow_joint_trajectory` | control_msgs/action/FollowJointTrajectory | Execute joint trajectory |
-| `/niryo_robot_arm_commander/robot_action` | niryo_robot_arm_commander/action/RobotMove | Execute a robot motion using the high-level robot arm commander |
+| `/niryo_robot_arm_commander/robot_action` | niryo_ned_ros2_interfaces/action/RobotMove | Execute a robot motion using the high-level robot arm commander |
 | `/niryo_robot_tools_commander/action_server` | niryo_ned_ros2_interfaces/action/Tool | Execute a a tool command |
 
 

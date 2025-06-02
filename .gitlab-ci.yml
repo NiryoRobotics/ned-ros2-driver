@@ -84,6 +84,7 @@ unit_tests:
 
 mirror_github:
   stage: release
+  needs: []
   before_script:
     - mkdir -p ~/.ssh
     - eval $(ssh-agent -s)

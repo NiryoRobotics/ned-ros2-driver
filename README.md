@@ -89,7 +89,7 @@ It should work seemlessly with older version of ROS2. If it is not the case, don
    ```bash
    mkdir -p ~/ros2_drivers_ws/src
    cd ~/ros2_drivers_ws/src
-   git clone https://github.com/NiryoRobotics/ros2-driver.git
+   git clone https://github.com/NiryoRobotics/ned-ros2-driver.git
    ```
 
 2. Install dependencies:

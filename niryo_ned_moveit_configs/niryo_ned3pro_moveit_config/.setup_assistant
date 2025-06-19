@@ -1,0 +1,25 @@
+moveit_setup_assistant_config:
+  urdf:
+    package: niryo_ned_description
+    relative_path: urdf/ned3pro/niryo_ned3pro.urdf.xacro
+  srdf:
+    relative_path: config/niryo_ned3pro.srdf
+  package_settings:
+    author_name: Thomas Degallaix
+    author_email: t.degallaix@niryo.com
+    generated_timestamp: 1750332527
+  control_xacro:
+    command:
+      - position
+    state:
+      - position
+      - velocity
+  modified_urdf:
+    xacros:
+      - control_xacro
+  control_xacro:
+    command:
+      - position
+    state:
+      - position
+      - velocity

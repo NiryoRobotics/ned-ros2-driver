@@ -28,9 +28,15 @@ A ROS2 driver package that bridges ROS1 interfaces on Niryo NED robots to ROS2 i
     - [Topics](#topics)
     - [Services](#services)
     - [Actions](#actions)
+  - [Moveit2 integration](#moveit2-integration)
+    - [Launching the Moveit2 package](#launching-the-moveit2-package)
+    - [Caveat](#caveat)
   - [Limitations](#limitations)
   - [Troubleshooting](#troubleshooting)
     - [Common Issues](#common-issues)
+      - [1. **Cannot connect to ROSBridge server**:](#1-cannot-connect-to-rosbridge-server)
+      - [2. **Topics/services not appearing in ROS2**:](#2-topicsservices-not-appearing-in-ros2)
+      - [3. **Moveit2 timing error**](#3-moveit2-timing-error)
   - [License](#license)
   - [Acknowledgments](#acknowledgments)
 
@@ -283,6 +289,36 @@ The driver bridges all topics, services, and actions from the Niryo NED robot to
 
 For more informations about the available interfaces, please refer to [the Ned's ROS documentation](https://niryorobotics.github.io/ned_ros/).
 
+## Moveit2 integration
+
+The driver is totally compatible with Moveit2. If new to this, we highly recommand you to take a look at the [Moveit2 documentation](https://moveit.picknik.ai/main/doc/tutorials/tutorials.html).
+Demo packages for both Ned2 and Ned3pro are provided in the `niryo_ned_moveit_configs` folder either to be used as is or to be used as examples if you want to create your own Moveit2 package.
+
+### Launching the Moveit2 package
+
+1. Source the workspace:
+```bash
+source ~/ros2_drivers_ws/install/setup.bash
+```
+
+2. Launch the driver with default settings:
+```bash
+ros2 launch niryo_<your_robot_model>_moveit_config <your_robot_model>_moveit.launch.py
+```
+Replace `<your_robot_model>` by your robot, either `ned2` or `ned3pro`.
+
+Example:
+```bash
+ros2 launch niryo_ned2_moveit_config ned2_moveit.launch.py
+```
+
+You should have an Rviz window open with the moveit2 plugins loaded and available to control the robot.
+
+![Ned2 Moveit2](assets/images/ned2_moveit2.png)
+
+### Caveat
+It seems that some robots does not have their timezone correctly set which can prevent Moveit2 from successfully planning trajectories. If you encounter this type of problem, please refer to [this fix](#3-moveit2-timing-error).
+
 ## Limitations
 
 1. **Message Compatibility**: Some complex message types might have fields only available in either ROS1 or ROS2. These fields will be ignored.
@@ -292,14 +328,46 @@ For more informations about the available interfaces, please refer to [the Ned's
 
 ### Common Issues
 
-1. **Cannot connect to ROSBridge server**:
+#### 1. **Cannot connect to ROSBridge server**:
    - Ensure the robot is powered on and connected to the network
    - Verify the IP address and port are correct
    - Check if the ROSBridge server is running on the robot (You can use try to connect using [NiryoStudio](https://niryo.com/niryostudio/) which also uses ROSbridge for the communication)
 
-2. **Topics/services not appearing in ROS2**:
+#### 2. **Topics/services not appearing in ROS2**:
    - Check if they're included in your whitelist configuration
    - Verify the topics exist on the ROS1 side on the robot using `rostopic list`
+
+#### 3. **Moveit2 timing error**
+   When using MoveIt2 on your local machine to control the robot remotely, you might encounter an error like this:
+   ![Moveit2 timing error](assets/images/moveit2_timing_error.png)
+
+   This error typically indicates that your robot's system clock is not synchronized with your local time. A common cause is that the robot is set to UTC (Coordinated Universal Time) rather than your local timezone.
+
+   1. **Check the robot's time and timezone**
+   Open a terminal, connect to your robot via SSH, and run `timedatectl`:
+   ```bash
+   ssh niryo@<your_robot_ip>
+   timedatectl
+   ```
+   Look for the `Time zone` and `Local time` fields. If the timezone is set to `Etc/UTC` and the local time differs from your actual time, you’ll need to update the timezone.
+
+   2. **Set the correct timezone**
+   First, list all available timezones:
+   ```bash
+   timedatectl list-timezones
+   ```
+   Then set the appropriate one. For example:
+   ```bash
+   timedatectl set-timezone Europe/Paris
+   ```
+   3. **Restart the robot software**
+   After updating the timezone, restart the robot’s software stack to apply the change:
+   ```bash
+   sudo service niryo_robot_ros restart
+   ```
+
+   Once the robot is back online, MoveIt2 should work correctly without any time synchronization errors.
+
 
 ## License
 

@@ -1,5 +1,9 @@
 # Ned ROS2 driver Changelog
 
+v1.0.1 (19-06-2025)
+-------------------
+* Add Moveit2 demo package for Ned2
+* Add Moveit2 demo package for Ned3pro
 
 v1.0.0 (02-06-2025)
 -------------------

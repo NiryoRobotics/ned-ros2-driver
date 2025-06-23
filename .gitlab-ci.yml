@@ -90,7 +90,6 @@ mirror_github:
     - mkdir -p ~/.ssh
     - eval $(ssh-agent -s)
     - echo "$GIT_SSH_PRIVATE_KEY" | ssh-add -
-    - echo "$GIT_SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
     - ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
   script:
     # Mirror main and tags to GitHub

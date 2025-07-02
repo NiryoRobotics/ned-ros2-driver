@@ -1,5 +1,10 @@
 # Ned ROS2 driver Changelog
 
+v1.0.2 (02-07-2025)
+-------------------
+* Fix conversion from ROS1 service response to ROS2 which required the response to be converted to a dict before being processed
+* Use ROS2 interface message fields to identify how to recursively convert ROS1 interfaces to their ROS2 counterpart
+
 v1.0.1 (19-06-2025)
 -------------------
 * Add Moveit2 demo package for Ned2

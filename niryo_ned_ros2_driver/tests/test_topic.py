@@ -264,6 +264,8 @@ class TestTopic:
         mock_ros2_msg = MagicMock()
         topic_instance._ros2_msg_class.return_value = mock_ros2_msg
 
+        topic_instance._message_field_types.return_type = MagicMock()
+
         # Create a test message
         ros1_msg = {"data": "test message"}
 
@@ -276,7 +278,7 @@ class TestTopic:
 
                 # Verify message was normalized, converted and published
                 mock_normalize.assert_called_once_with(
-                    ros1_msg, topic_instance._ros2_type_str
+                    ros1_msg, topic_instance._message_field_types
                 )
                 mock_set_message_fields.assert_called_once_with(mock_ros2_msg, ros1_msg)
                 topic_instance._ros2_publisher.publish.assert_called_once_with(
@@ -316,9 +318,7 @@ class TestTopic:
 
             # Verify message was converted, normalized and published
             mock_ros2_message_to_dict.assert_called_once_with(ros2_msg)
-            mock_normalize.assert_called_once_with(
-                {"data": "test message"}, topic_instance._topic_types.ros1_type
-            )
+            mock_normalize.assert_called_once_with({"data": "test message"})
             topic_instance._ros1_publisher.publish.assert_called_once_with(
                 {"data": "test message"}
             )

@@ -45,7 +45,7 @@ from unittest.mock import MagicMock
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Header
 from builtin_interfaces.msg import Time
-
+from unittest.mock import patch
 
 class TestConversionUtils:
     """Test suite for ROS message conversion utilities."""
@@ -216,55 +216,6 @@ class TestConversionUtils:
             0.0,
         ]
 
-    def test_recursive_ros1_fields_to_ros2_normalization(self):
-        """Test recursive normalization of ROS1 fields to ROS2 with a complex message."""
-        # Create a ROS1 FollowJointTrajectoryActionFeedback message
-        ros1_msg = {
-            "feedback": {
-                "header": {
-                    "stamp": {"secs": 10, "nsecs": 500000000},
-                    "frame_id": "map",
-                },
-                "joint_names": ["joint1", "joint2"],
-                "desired": {
-                    "positions": [0.0, 1.0],
-                    "velocities": [0.1, 0.2],
-                    "accelerations": [0.01, 0.02],
-                    "effort": [0.5, 0.6],
-                    "time_from_start": {"secs": 5, "nsecs": 0},
-                },
-                "actual": {
-                    "positions": [0.5, 1.5],
-                    "velocities": [0.15, 0.25],
-                    "accelerations": [0.015, 0.025],
-                    "effort": [0.55, 0.65],
-                    "time_from_start": {"secs": 6, "nsecs": 0},
-                },
-                "error": {
-                    "positions": [0.1, 0.2],
-                    "velocities": [0.01, 0.02],
-                    "accelerations": [0.001, 0.002],
-                    "effort": [0.05, 0.06],
-                    "time_from_start": {"secs": 1, "nsecs": 500000000},
-                },
-            }
-        }
-
-        # Apply recursive normalization
-        recursive_ros1_fields_to_ros2_normalization(ros1_msg)
-
-        # Check the results
-        assert ros1_msg["feedback"]["header"]["stamp"]["sec"] == 10
-        assert ros1_msg["feedback"]["header"]["stamp"]["nanosec"] == 500000000
-
-        assert ros1_msg["feedback"]["desired"]["time_from_start"]["sec"] == 5
-        assert ros1_msg["feedback"]["desired"]["time_from_start"]["nanosec"] == 0
-
-        assert ros1_msg["feedback"]["actual"]["time_from_start"]["sec"] == 6
-        assert ros1_msg["feedback"]["actual"]["time_from_start"]["nanosec"] == 0
-
-        assert ros1_msg["feedback"]["error"]["time_from_start"]["sec"] == 1
-        assert ros1_msg["feedback"]["error"]["time_from_start"]["nanosec"] == 500000000
 
     def test_normalize_ROS1_type_to_ROS2(self):
         """Test normalization of ROS1 message to ROS2 by type."""
@@ -278,9 +229,9 @@ class TestConversionUtils:
             ]
         }
 
-        normalize_ROS1_type_to_ROS2(
-            ros1_marker_array, "visualization_msgs/msg/MarkerArray"
-        )
+        from visualization_msgs.msg import MarkerArray
+        field_types = MarkerArray().get_fields_and_field_types()
+        normalize_ROS1_type_to_ROS2(ros1_marker_array, field_types)
 
         # Check the result
         assert ros1_marker_array["markers"][0]["header"]["stamp"]["sec"] == 10
@@ -295,7 +246,9 @@ class TestConversionUtils:
             "K": [100.0, 0.0, 320.0, 0.0, 100.0, 240.0, 0.0, 0.0, 1.0],
         }
 
-        normalize_ROS1_type_to_ROS2(ros1_camera_info, "sensor_msgs/msg/CameraInfo")
+        from sensor_msgs.msg import CameraInfo
+        field_types = CameraInfo().get_fields_and_field_types()
+        normalize_ROS1_type_to_ROS2(ros1_camera_info, field_types)
 
         # Check the result
         assert ros1_camera_info["header"]["stamp"]["sec"] == 10
@@ -466,3 +419,194 @@ class TestConversionUtils:
             ros2_nested_msg["outer_field"]["inner_field"]["time_from_start"]["nsecs"]
             == 100000000
         )
+
+
+    def test_recursive_ros1_fields_to_ros2_normalization(self):
+        """Test recursive normalization with explicit type information."""
+        
+        # Test with header field conversion
+        obj = {
+            "header": {
+                "stamp": {"secs": 10, "nsecs": 500000000},
+                "frame_id": "base_link"
+            },
+            "other_field": "value"
+        }
+        field_types = {
+            "header": "std_msgs/Header",
+            "other_field": "string"
+        }
+        
+        recursive_ros1_fields_to_ros2_normalization(obj, field_types)
+        
+        assert obj["header"]["stamp"]["sec"] == 10
+        assert obj["header"]["stamp"]["nanosec"] == 500000000
+        assert obj["header"]["frame_id"] == "base_link"
+        assert obj["other_field"] == "value"
+
+    def test_recursive_ros1_fields_to_ros2_normalization_camera_info(self):
+        """Test recursive normalization with camera info type conversion."""
+        
+        obj = {
+            "camera_info": {
+                "D": [0.1, 0.2],
+                "K": [100.0, 0.0, 320.0],
+                "header": {
+                    "stamp": {"secs": 5, "nsecs": 0},
+                    "frame_id": "camera"
+                }
+            }
+        }
+        field_types = {
+            "camera_info": "sensor_msgs/CameraInfo"
+        }
+        
+        recursive_ros1_fields_to_ros2_normalization(obj, field_types)
+        
+        # Check type-specific conversion (D->d, K->k)
+        assert "d" in obj["camera_info"]
+        assert "k" in obj["camera_info"]
+        assert "D" not in obj["camera_info"]
+        assert "K" not in obj["camera_info"]
+        # Check field-based conversion for header
+        assert obj["camera_info"]["header"]["stamp"]["sec"] == 5
+        assert obj["camera_info"]["header"]["stamp"]["nanosec"] == 0
+
+    def test_recursive_ros1_fields_to_ros2_normalization_nested_messages(self):
+        """Test recursive normalization with nested message types."""
+        
+        obj = {
+            "trajectory": {
+                "header": {
+                    "stamp": {"secs": 15, "nsecs": 750000000},
+                    "frame_id": "map"
+                },
+                "points": [
+                    {
+                        "time_from_start": {"secs": 2, "nsecs": 0}
+                    }
+                ]
+            }
+        }
+        field_types = {
+            "trajectory": "trajectory_msgs/JointTrajectory"
+        }
+        
+        # Mock get_nested_field_types to return nested field types
+        with patch('niryo_ned_ros2_driver.utils.conversion.get_nested_field_types') as mock_get_types:
+            mock_get_types.return_value = {
+                "header": "std_msgs/Header",
+                "points": "trajectory_msgs/JointTrajectoryPoint[]"
+            }
+            
+            recursive_ros1_fields_to_ros2_normalization(obj, field_types)
+        
+        # Check that nested header was converted
+        assert obj["trajectory"]["header"]["stamp"]["sec"] == 15
+        assert obj["trajectory"]["header"]["stamp"]["nanosec"] == 750000000
+        # Check that nested time_from_start was converted
+        assert obj["trajectory"]["points"][0]["time_from_start"]["sec"] == 2
+        assert obj["trajectory"]["points"][0]["time_from_start"]["nanosec"] == 0
+
+    def test_recursive_ros1_fields_to_ros2_normalization_primitive_types(self):
+        """Test recursive normalization with primitive types."""
+        
+        obj = {
+            "name": "test",
+            "value": 42,
+            "active": True,
+            "nested": {
+                "stamp": {"secs": 1, "nsecs": 0}
+            }
+        }
+        field_types = {
+            "name": "string",
+            "value": "int32",
+            "active": "bool",
+            "nested": "some_primitive_type"
+        }
+        
+        recursive_ros1_fields_to_ros2_normalization(obj, field_types)
+        
+        # Primitive types should remain unchanged
+        assert obj["name"] == "test"
+        assert obj["value"] == 42
+        assert obj["active"] == True
+        # Nested stamp should be converted
+        assert obj["nested"]["stamp"]["sec"] == 1
+        assert obj["nested"]["stamp"]["nanosec"] == 0
+
+    def test_recursive_ros1_fields_to_ros2_normalization_list_processing(self):
+        """Test recursive normalization with lists."""
+        
+        obj = [
+            {
+                "header": {
+                    "stamp": {"secs": 20, "nsecs": 0},
+                    "frame_id": "frame1"
+                }
+            },
+            {
+                "header": {
+                    "stamp": {"secs": 30, "nsecs": 500000000},
+                    "frame_id": "frame2"
+                }
+            }
+        ]
+        field_types = {}
+        
+        recursive_ros1_fields_to_ros2_normalization(obj, field_types)
+        
+        # Check that all items in the list were processed
+        assert obj[0]["header"]["stamp"]["sec"] == 20
+        assert obj[0]["header"]["stamp"]["nanosec"] == 0
+        assert obj[1]["header"]["stamp"]["sec"] == 30
+        assert obj[1]["header"]["stamp"]["nanosec"] == 500000000
+
+    def test_recursive_ros1_fields_to_ros2_normalization_empty_field_types(self):
+        """Test recursive normalization with empty field types."""
+        
+        obj = {
+            "header": {
+                "stamp": {"secs": 25, "nsecs": 0},
+                "frame_id": "test"
+            },
+            "time_from_start": {"secs": 3, "nsecs": 250000000}
+        }
+        field_types = {}
+        
+        recursive_ros1_fields_to_ros2_normalization(obj, field_types)
+        
+        # Should still apply field-based conversions even without type info
+        assert obj["header"]["stamp"]["sec"] == 25
+        assert obj["header"]["stamp"]["nanosec"] == 0
+        assert obj["time_from_start"]["sec"] == 3
+        assert obj["time_from_start"]["nanosec"] == 250000000
+
+    def test_recursive_ros1_fields_to_ros2_normalization_non_dict_values(self):
+        """Test recursive normalization with non-dictionary values."""
+        
+        obj = {
+            "string_field": "test_value",
+            "number_field": 123,
+            "list_field": [1, 2, 3],
+            "nested_dict": {
+                "stamp": {"secs": 5, "nsecs": 0}
+            }
+        }
+        field_types = {
+            "string_field": "string",
+            "number_field": "int32",
+            "list_field": "int32[]",
+            "nested_dict": "custom_type"
+        }
+        
+        recursive_ros1_fields_to_ros2_normalization(obj, field_types)
+        
+        # Non-dict values should remain unchanged except for nested conversions
+        assert obj["string_field"] == "test_value"
+        assert obj["number_field"] == 123
+        assert obj["list_field"] == [1, 2, 3]
+        assert obj["nested_dict"]["stamp"]["sec"] == 5
+        assert obj["nested_dict"]["stamp"]["nanosec"] == 0
+

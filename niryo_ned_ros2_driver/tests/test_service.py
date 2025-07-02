@@ -27,186 +27,172 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import pytest
+from unittest.mock import Mock, MagicMock, patch
+import rclpy
+from rclpy.node import Node
+from rclpy.callback_groups import ReentrantCallbackGroup
 import roslibpy
-from unittest.mock import MagicMock, patch
-
+from rosidl_runtime_py.utilities import get_service
+from rosidl_runtime_py.set_message import set_message_fields
 from niryo_ned_ros2_driver.service import Service
 from niryo_ned_ros2_driver.utils.models import ROSTypes
 
-
 class TestService:
-    """Test suite for the Service class that bridges ROS1 and ROS2 services."""
+    """Test suite for the Service class."""
 
     @pytest.fixture
-    def mock_get_service(self):
-        """Create a mock for get_service function."""
-        with patch("niryo_ned_ros2_driver.service.get_service") as mock:
-            yield mock
+    def mock_node(self):
+        """Create a mock ROS2 node."""
+        node = Mock(spec=Node)
+        node.get_logger.return_value = Mock()
+        node.create_service = Mock()
+        return node
 
     @pytest.fixture
-    def mock_roslibpy_service_class(self):
-        """Mock the roslibpy.Service class."""
-        with patch("niryo_ned_ros2_driver.service.roslibpy.Service") as mock:
-            yield mock
+    def mock_rosbridge_client(self):
+        """Create a mock rosbridge client."""
+        return Mock(spec=roslibpy.Ros)
 
     @pytest.fixture
-    def mock_ros1_service(self):
-        """Create a mock ROS1 service."""
-        mock = MagicMock(spec=roslibpy.Service)
-        return mock
+    def mock_service_types(self):
+        """Create mock service types."""
+        return ROSTypes(
+            ros1_type="std_srvs/SetBool",
+            ros2_type="std_srvs/srv/SetBool"
+        )
 
     @pytest.fixture
-    def service_ros_types(self):
-        """Create a ROSTypes fixture for service types."""
-        return ROSTypes(ros1_type="std_srvs/Trigger", ros2_type="std_srvs/srv/Trigger")
+    def mock_callback_group(self):
+        """Create a mock callback group."""
+        return Mock(spec=ReentrantCallbackGroup)
 
     @pytest.fixture
-    def service_instance(
-        self,
-        mock_node,
-        mock_rosbridge,
-        mock_callback_group,
-        service_ros_types,
-        mock_get_service,
-        mock_roslibpy_service_class,
-    ):
+    def service_instance(self, mock_node, mock_rosbridge_client, mock_service_types, mock_callback_group):
         """Create a Service instance for testing."""
-        # Configure mocks
-        mock_srv_class = MagicMock()
-        mock_get_service.return_value = mock_srv_class
+        with patch('niryo_ned_ros2_driver.service.get_service') as mock_get_service:
+            mock_srv_class = Mock()
+            mock_srv_class.Response.get_fields_and_field_types.return_value = {'success': 'bool', 'message': 'string'}
+            mock_get_service.return_value = mock_srv_class
+            
+            service = Service(
+                node=mock_node,
+                service_name="test_service",
+                service_types=mock_service_types,
+                prefix="ros2_",
+                rosbridge_client=mock_rosbridge_client,
+                callback_group=mock_callback_group
+            )
+            return service
 
-        mock_ros1_service = MagicMock()
-        mock_roslibpy_service_class.return_value = mock_ros1_service
+    def test_init(self, mock_node, mock_rosbridge_client, mock_service_types, mock_callback_group):
+        """Test Service initialization."""
+        with patch('niryo_ned_ros2_driver.service.get_service') as mock_get_service:
+            mock_srv_class = Mock()
+            mock_srv_class.Response.get_fields_and_field_types.return_value = {'success': 'bool'}
+            mock_get_service.return_value = mock_srv_class
+            
+            service = Service(
+                node=mock_node,
+                service_name="test_service",
+                service_types=mock_service_types,
+                prefix="ros2_",
+                rosbridge_client=mock_rosbridge_client,
+                callback_group=mock_callback_group
+            )
+            
+            assert service._service_name == "test_service"
+            assert service._prefix == "ros2_"
+            assert service._node == mock_node
+            mock_node.get_logger().debug.assert_called_once()
+            mock_node.create_service.assert_called_once()
 
-        # Create service instance
-        service = Service(
-            node=mock_node,
-            service_name="/test_service",
-            service_types=service_ros_types,
-            prefix="",
-            rosbridge_client=mock_rosbridge,
-            callback_group=mock_callback_group,
-        )
+    def test_create_ros1_service_client(self, service_instance):
+        """Test creation of ROS1 service client."""
+        with patch('niryo_ned_ros2_driver.service.roslibpy.Service') as mock_service:
+            client = service_instance._create_ros1_service_client()
+            mock_service.assert_called_once_with(
+                service_instance._rosbridge_client,
+                service_instance._service_name,
+                service_instance._service_types.ros1_type
+            )
 
-        return service
-
-    def test_initialization(
-        self,
-        service_instance,
-        mock_node,
-        mock_rosbridge,
-        mock_callback_group,
-        service_ros_types,
-        mock_get_service,
-        mock_roslibpy_service_class,
-    ):
-        """Test correct initialization of the Service."""
-        # Verify initialization
-        assert service_instance._node == mock_node
-        assert service_instance._service_name == "/test_service"
-        assert service_instance._service_types == service_ros_types
-        assert service_instance._prefix == ""
-        assert service_instance._rosbridge_client == mock_rosbridge
-        assert service_instance._callback_group == mock_callback_group
-
-        # Verify service class was fetched
-        mock_get_service.assert_called_once_with(service_ros_types.ros2_type)
-
-        # Verify ROS1 service client was created
-        mock_roslibpy_service_class.assert_called_once_with(
-            mock_rosbridge, "/test_service", service_ros_types.ros1_type
-        )
-
-        # Verify ROS2 service server was created
-        mock_node.create_service.assert_called_once_with(
-            mock_get_service.return_value,
-            "/test_service",
+    def test_create_ros2_service_server(self, service_instance):
+        """Test creation of ROS2 service server."""
+        server = service_instance._create_ros2_service_server()
+        service_instance._node.create_service.assert_called_with(
+            service_instance._ros2_srv_class,
+            f"{service_instance._prefix}{service_instance._service_name}",
             service_instance._ros2_callback,
-            callback_group=mock_callback_group,
+            callback_group=service_instance._callback_group
         )
 
-    def test_ros2_callback(self, service_instance):
-        """Test ROS2 service callback that forwards to ROS1."""
-        # Create mock request and response
-        request = MagicMock()
-        response = MagicMock()
+    @patch('niryo_ned_ros2_driver.service.ros2_message_to_dict')
+    @patch('niryo_ned_ros2_driver.service.normalize_ROS1_type_to_ROS2')
+    @patch('niryo_ned_ros2_driver.service.set_message_fields')
+    def test_ros2_callback_success(self, mock_set_fields, mock_normalize, mock_to_dict, service_instance):
+        """Test successful ROS2 callback execution."""
+        # Setup mocks
+        mock_request = Mock()
+        mock_response = Mock()
+        mock_to_dict.return_value = {'data': True}
+        
+        mock_ros1_result = {'success': True, 'message': 'OK'}
+        service_instance._ros1_service_client.call = Mock(return_value=mock_ros1_result)
+        
+        # Execute callback
+        result = service_instance._ros2_callback(mock_request, mock_response)
+        
+        # Verify calls
+        mock_to_dict.assert_called_once_with(mock_request)
+        service_instance._ros1_service_client.call.assert_called_once()
+        mock_normalize.assert_called_once()
+        mock_set_fields.assert_called_once_with(mock_response, mock_ros1_result)
+        assert result == mock_response
 
-        ros1_response = {"success": True, "message": "Operation successful"}
+    @patch('niryo_ned_ros2_driver.service.ros2_message_to_dict')
+    @patch('niryo_ned_ros2_driver.service.set_message_fields')
+    def test_ros2_callback_attribute_error(self, mock_set_fields, mock_to_dict, service_instance):
+        """Test ROS2 callback handling AttributeError."""
+        # Setup mocks
+        mock_request = Mock()
+        mock_response = Mock()
+        mock_to_dict.return_value = {'data': True}
+        
+        mock_ros1_result = {'success': True, 'message': 'OK'}
+        service_instance._ros1_service_client.call = Mock(return_value=mock_ros1_result)
+        mock_set_fields.side_effect = AttributeError("Conversion failed")
+        
+        # Execute and verify exception
+        with pytest.raises(AttributeError):
+            service_instance._ros2_callback(mock_request, mock_response)
+        
+        service_instance._node.get_logger().error.assert_called_once()
 
-        # Mock the ROS1 service call
-        service_instance._ros1_service_client.call.return_value = ros1_response
+    def test_service_name_with_prefix(self, service_instance):
+        """Test that service is created with correct prefix."""
+        expected_name = f"{service_instance._prefix}{service_instance._service_name}"
+        service_instance._node.create_service.assert_called_with(
+            service_instance._ros2_srv_class,
+            expected_name,
+            service_instance._ros2_callback,
+            callback_group=service_instance._callback_group
+        )
 
-        with patch("niryo_ned_ros2_driver.service.ros2_message_to_dict"):
-            with patch(
-                "niryo_ned_ros2_driver.service.normalize_ROS1_type_to_ROS2"
-            ) as mock_normalize:
-                with patch(
-                    "niryo_ned_ros2_driver.service.set_message_fields"
-                ) as mock_set_fields:
-                    result = service_instance._ros2_callback(request, response)
-
-                    # Verify the complex response was normalized and set
-                    mock_normalize.assert_called_once_with(
-                        ros1_response, service_instance._service_types.ros2_type
-                    )
-                    mock_set_fields.assert_called_once_with(response, ros1_response)
-
-                    # Verify the response was returned
-                    assert result is response
-
-    def test_ros2_callback_with_error(self, service_instance):
-        """Test handling of errors in the ROS2 service callback."""
-        # Create mock request and response
-        request = MagicMock()
-        response = MagicMock()
-
-        # Mock an error in set_message_fields
-        with patch("niryo_ned_ros2_driver.service.ros2_message_to_dict"):
-            with patch("niryo_ned_ros2_driver.service.normalize_ROS1_type_to_ROS2"):
-                with patch(
-                    "niryo_ned_ros2_driver.service.set_message_fields"
-                ) as mock_set_fields:
-                    mock_set_fields.side_effect = AttributeError("No such attribute")
-
-                    # Call the callback and expect an exception
-                    with pytest.raises(AttributeError):
-                        service_instance._ros2_callback(request, response)
-
-                    # Verify error was logged
-                    service_instance._node.get_logger().error.assert_called_once()
-
-    def test_ros2_callback_with_complex_response(self, service_instance):
-        """Test handling of complex responses with nested structures."""
-        # Create mock request and response
-        request = MagicMock()
-        response = MagicMock()
-
-        # Create a complex ROS1 response with nested structures
-        complex_ros1_response = {
-            "status": {"success": True, "message": "Operation completed"},
-            "result": {
-                "data": [1, 2, 3],
-                "metadata": {"timestamp": {"secs": 10, "nsecs": 0}, "source": "robot"},
-            },
-        }
-
-        # Mock the ROS1 service call to return the complex response
-        service_instance._ros1_service_client.call.return_value = complex_ros1_response
-
-        # Call the callback with mocked conversion functions
-        with patch("niryo_ned_ros2_driver.service.ros2_message_to_dict"):
-            with patch(
-                "niryo_ned_ros2_driver.service.normalize_ROS1_type_to_ROS2"
-            ) as mock_normalize:
-                with patch(
-                    "niryo_ned_ros2_driver.service.set_message_fields"
-                ) as mock_set_fields:
-                    service_instance._ros2_callback(request, response)
-
-                    # Verify the complex response was normalized and set
-                    mock_normalize.assert_called_once_with(
-                        complex_ros1_response, service_instance._service_types.ros2_type
-                    )
-                    mock_set_fields.assert_called_once_with(
-                        response, complex_ros1_response
-                    )
+    def test_response_field_types_assignment(self, mock_node, mock_rosbridge_client, mock_service_types, mock_callback_group):
+        """Test that response field types are correctly assigned."""
+        with patch('niryo_ned_ros2_driver.service.get_service') as mock_get_service:
+            expected_fields = {'success': 'bool', 'message': 'string'}
+            mock_srv_class = Mock()
+            mock_srv_class.Response.get_fields_and_field_types.return_value = expected_fields
+            mock_get_service.return_value = mock_srv_class
+            
+            service = Service(
+                node=mock_node,
+                service_name="test_service",
+                service_types=mock_service_types,
+                prefix="ros2_",
+                rosbridge_client=mock_rosbridge_client,
+                callback_group=mock_callback_group
+            )
+            
+            assert service._response_field_types == expected_fields

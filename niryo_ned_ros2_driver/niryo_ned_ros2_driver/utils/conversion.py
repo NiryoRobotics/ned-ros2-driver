@@ -273,6 +273,26 @@ def recursive_ros1_fields_to_ros2_normalization(obj: Any, field_types: Dict[str,
                     )
                 else:
                     recursive_ros1_fields_to_ros2_normalization(value, {})
+            elif isinstance(value, str) and key == "data" and expected_type:
+                # Handle data field conversion from string to bytes
+                # This is needed for compressed images and other binary data
+                if (
+                    "sequence<uint8>" in expected_type
+                    or "uint8[]" in expected_type
+                    or expected_type.startswith("sequence<uint8")
+                    or expected_type == "uint8[]"
+                ):
+                    try:
+                        import base64
+
+                        # Try to decode as base64, fallback to UTF-8 encoding if that fails
+                        try:
+                            obj[key] = base64.b64decode(value)
+                        except Exception:
+                            # If base64 decoding fails, encode as UTF-8 bytes
+                            obj[key] = value.encode("utf-8")
+                    except Exception:
+                        pass
             else:
                 recursive_ros1_fields_to_ros2_normalization(value, {})
 

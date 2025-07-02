@@ -99,6 +99,11 @@ class Service:
 
         self._ros2_srv_class = get_service(service_types.ros2_type)
 
+        # Get the field types for the response
+        self._response_field_types = (
+            self._ros2_srv_class.Response.get_fields_and_field_types()
+        )
+
         self._ros2_service_server = self._create_ros2_service_server()
         self._ros1_service_client = self._create_ros1_service_client()
 
@@ -163,7 +168,8 @@ class Service:
         )
 
         try:
-            normalize_ROS1_type_to_ROS2(ros1_result, self._service_types.ros2_type)
+            ros1_result = dict(ros1_result)
+            normalize_ROS1_type_to_ROS2(ros1_result, self._response_field_types)
             # Convert the ROS1 dict response to a ROS2 response message
             set_message_fields(response, ros1_result)
         except AttributeError as e:

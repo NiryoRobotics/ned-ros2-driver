@@ -202,8 +202,8 @@ def convert_ROS1_camera_info_to_ROS2(obj: Dict[str, Any]):
 
 # Useful when we have access to the message type
 ROS1_TO_ROS2_TYPE_CONVERSIONS: Dict[str, Callable] = {
-    "sensor_msgs/msg/CameraInfo": convert_ROS1_camera_info_to_ROS2,
-    "sensor_msgs/msg/CompressedImage": convert_ROS1_compressed_image_to_ROS2,
+    "sensor_msgs/CameraInfo": convert_ROS1_camera_info_to_ROS2,
+    "sensor_msgs/CompressedImage": convert_ROS1_compressed_image_to_ROS2,
 }
 
 # Useful when we only have access to the field name in a dictionary
@@ -215,46 +215,145 @@ ROS1_TO_ROS2_FIELD_CONVERSIONS: Dict[str, Callable] = {
 }
 
 
-def recursive_ros1_fields_to_ros2_normalization(obj: Any):
-    """
-    Recursively converts ROS1 field names to ROS2 field names in nested dictionaries and lists.
-
-    This function traverses through dictionaries and lists, normalizing field names
-    according to predefined conversion rules.
-
-    Args:
-        obj (Any): The object to normalize. Can be a dictionary, list, or other data type.
-            If it's a dictionary, its keys will be checked against the conversion mapping.
-            If it's a list, each item will be processed recursively.
-            Other types remain unchanged.
-    """
-    if isinstance(obj, dict):
-        for key, value in list(obj.items()):
-            if key in ROS1_TO_ROS2_FIELD_CONVERSIONS and isinstance(value, dict):
-                obj[key] = ROS1_TO_ROS2_FIELD_CONVERSIONS[key](value)
-            else:
-                recursive_ros1_fields_to_ros2_normalization(value)
-    elif isinstance(obj, list):
-        for item in obj:
-            recursive_ros1_fields_to_ros2_normalization(item)
-
-
-def normalize_ROS1_type_to_ROS2(obj: Dict[str, Any], ros2_type_str: str):
+def normalize_ROS1_type_to_ROS2(obj: Dict[str, Any], field_types: Dict[str, str]):
     """
     Normalize a ROS1 type object to comply with ROS2 format.
 
-    This function first performs recursive field normalization between ROS1 and ROS2 formats,
-    then applies any specific type conversion functions if the target ROS2 type is registered
-    in the conversion dictionary.
+    This function performs recursive field normalization between ROS1 and ROS2 formats,
+    using type information for precise conversions.
 
     Args:
         obj (Dict[str, Any]): The ROS1 message dictionary to be normalized
-        ros2_type_str (str): The target ROS2 message type string identifier
+        field_types (Dict[str, str]): Dictionary mapping field names to their ROS2 type strings
     """
-    recursive_ros1_fields_to_ros2_normalization(obj)
+    recursive_ros1_fields_to_ros2_normalization(obj, field_types)
 
-    if ros2_type_str in ROS1_TO_ROS2_TYPE_CONVERSIONS:
-        ROS1_TO_ROS2_TYPE_CONVERSIONS[ros2_type_str](obj)
+    # Special case for CameraInfo
+    # if "d", "k", "r", "p" are in the field_types, it must be a CameraInfo message
+    if (
+        "d" in field_types
+        and "k" in field_types
+        and "r" in field_types
+        and "p" in field_types
+    ):
+        convert_ROS1_camera_info_to_ROS2(obj)
+
+
+def recursive_ros1_fields_to_ros2_normalization(obj: Any, field_types: Dict[str, str]):
+    """
+    Recursively converts ROS1 fields to ROS2 format using explicit type information.
+
+    Args:
+        obj (Any): The object to normalize
+        field_types (Dict[str, str]): Dictionary mapping field names to their ROS2 type strings
+    """
+    if isinstance(obj, dict):
+        for key, value in list(obj.items()):
+            expected_type = field_types.get(key)
+
+            if isinstance(value, dict):
+                # Try field-based conversion first (for common fields like 'header', 'stamp')
+                if key in ROS1_TO_ROS2_FIELD_CONVERSIONS:
+                    obj[key] = ROS1_TO_ROS2_FIELD_CONVERSIONS[key](value)
+                    continue
+
+                # Try type-specific conversion
+                if expected_type and expected_type in ROS1_TO_ROS2_TYPE_CONVERSIONS:
+                    ROS1_TO_ROS2_TYPE_CONVERSIONS[expected_type](value)
+
+                # Recurse into nested structures
+                if (
+                    expected_type
+                    and "/" in expected_type
+                    and not is_primitive_type(expected_type)
+                ):
+                    nested_field_types = get_nested_field_types(expected_type)
+                    recursive_ros1_fields_to_ros2_normalization(
+                        value, nested_field_types
+                    )
+                else:
+                    recursive_ros1_fields_to_ros2_normalization(value, {})
+            else:
+                recursive_ros1_fields_to_ros2_normalization(value, {})
+
+    elif isinstance(obj, list):
+        for item in obj:
+            recursive_ros1_fields_to_ros2_normalization(item, {})
+
+
+def get_nested_field_types(message_type: str) -> Dict[str, str]:
+    """Get field types for a nested message type."""
+    try:
+        from rosidl_runtime_py.utilities import get_interface
+
+        msg_class = get_interface(message_type)
+        if hasattr(msg_class, "get_fields_and_field_types"):
+            return msg_class.get_fields_and_field_types()
+    except Exception:
+        pass
+    return {}
+
+
+# from rclpy.logging import get_logger
+
+
+# def recursive_ros1_fields_to_ros2_normalization(obj: Any):
+#     """
+#     Recursively converts ROS1 field names to ROS2 field names in nested dictionaries and lists.
+
+#     This function traverses through dictionaries and lists, normalizing field names
+#     according to predefined conversion rules.
+
+#     Args:
+#         obj (Any): The object to normalize. Can be a dictionary, list, or other data type.
+#             If it's a dictionary, its keys will be checked against the conversion mapping.
+#             If it's a list, each item will be processed recursively.
+#             Other types remain unchanged.
+#     """
+#     get_logger("niryo_ned_ros2_driver").info("Normalizing ROS1 fields to ROS2 format")
+#     get_logger("niryo_ned_ros2_driver").info(f"Object type: {type(obj)}")
+#     if isinstance(obj, dict):
+#         for key, value in list(obj.items()):
+#             get_logger("niryo_ned_ros2_driver").info(
+#                 f"Processing field '{key}' with value: {value}"
+#             )
+#             get_logger("niryo_ned_ros2_driver").info(f"Type of value: {type(value)}")
+#             if key in ROS1_TO_ROS2_FIELD_CONVERSIONS and isinstance(value, dict):
+#                 get_logger("niryo_ned_ros2_driver").info(
+#                     f"Converting field '{key}' from ROS1 to ROS2 format."
+#                 )
+#                 obj[key] = ROS1_TO_ROS2_FIELD_CONVERSIONS[key](value)
+#             else:
+#                 recursive_ros1_fields_to_ros2_normalization(value)
+#     elif isinstance(obj, list):
+#         get_logger("niryo_ned_ros2_driver").info(
+#             f"Processing a list with {len(obj)} items."
+#         )
+#         for item in obj:
+#             recursive_ros1_fields_to_ros2_normalization(item)
+
+
+# def normalize_ROS1_type_to_ROS2(
+#     obj: Dict[str, Any], ros2_type_str: str, field_types: Dict[str, str] = None
+# ):
+#     """
+#     Normalize a ROS1 type object to comply with ROS2 format.
+
+#     This function first performs recursive field normalization between ROS1 and ROS2 formats,
+#     then applies any specific type conversion functions if the target ROS2 type is registered
+#     in the conversion dictionary.
+
+#     Args:
+#         obj (Dict[str, Any]): The ROS1 message dictionary to be normalized
+#         ros2_type_str (str): The target ROS2 message type string identifier
+#     """
+#     if field_types:
+#         recursive_ros1_fields_to_ros2_normalization_with_types(obj, field_types)
+#     else:
+#         recursive_ros1_fields_to_ros2_normalization(obj)
+
+#     if ros2_type_str in ROS1_TO_ROS2_TYPE_CONVERSIONS:
+#         ROS1_TO_ROS2_TYPE_CONVERSIONS[ros2_type_str](obj)
 
 
 # ---------------------------- ROS2 -> ROS1 ---------------------------- #

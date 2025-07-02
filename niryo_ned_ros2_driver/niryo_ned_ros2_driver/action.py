@@ -175,6 +175,7 @@ class Action:
         )
 
         ros1_result = None
+        ros2_result = self._ros2_action_class.Result()
         result_received_event = threading.Event()
 
         request = ros2_message_to_dict(goal_handle.request)
@@ -186,14 +187,18 @@ class Action:
         )
 
         def feedback_callback(message):
-            normalize_ROS1_type_to_ROS2(message, self._action_types.ros2_type)
             feedback_msg = self._ros2_action_class.Feedback()
+            normalize_ROS1_type_to_ROS2(
+                message, feedback_msg.get_fields_and_field_types()
+            )
             set_message_fields(feedback_msg, message)
             goal_handle.publish_feedback(feedback_msg)
 
         def result_callback(result):
-            nonlocal ros1_result
-            normalize_ROS1_type_to_ROS2(ros1_result, self._action_types.ros2_type)
+            nonlocal ros1_result, ros2_result
+            normalize_ROS1_type_to_ROS2(
+                ros1_result, ros2_result.get_fields_and_field_types()
+            )
             ros1_result = result
             result_received_event.set()
 
@@ -206,7 +211,6 @@ class Action:
             time.sleep(0.01)
 
         ros1_goal_status = ros1_goal.status["status"]
-        ros2_result = self._ros2_action_class.Result()
         set_message_fields(ros2_result, ros1_result)
 
         # Map ROS1 terminal states to ROS2 terminal states

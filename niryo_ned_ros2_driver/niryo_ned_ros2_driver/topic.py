@@ -112,6 +112,9 @@ class Topic:
         self._ros2_type_str = topic_types.ros2_type
         self._ros2_msg_class = get_message(self._ros2_type_str)
 
+        # Get the field types for the response
+        self._message_field_types = self._ros2_msg_class.get_fields_and_field_types()
+
         self._loopback_filter = LoopbackFilter()
 
         self._ros1_publisher = self._create_ros1_publisher()
@@ -280,7 +283,7 @@ class Topic:
         """
 
         # Normalize the ROS1 message to match the expected ROS2 format
-        normalize_ROS1_type_to_ROS2(ros1_msg_dict, self._ros2_type_str)
+        normalize_ROS1_type_to_ROS2(ros1_msg_dict, self._message_field_types)
 
         # Check if the message hash is cached, cache it and forward it if not
         if not self._loopback_filter.should_forward(ros1_msg_dict):
@@ -319,7 +322,9 @@ class Topic:
             # Normalize the ROS2 message to match the expected ROS1 format after the loopback check
             # This is important to ensure that the message format are similar for the hash comparison
             # in the loopback filter
-            normalize_ROS2_type_to_ROS1(msg_dict, self._topic_types.ros1_type)
+            normalize_ROS2_type_to_ROS1(
+                msg_dict,
+            )
             self._ros1_publisher.publish(msg_dict)
         except Exception as e:
             self._node.get_logger().error(

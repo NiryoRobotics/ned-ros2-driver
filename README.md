@@ -108,7 +108,7 @@ It should work seemlessly with older version of ROS2. If it is not the case, don
    ```bash
    python3 -m venv venv --system-site-packages
    source venv/bin/activate
-   pip install -r src/requirements.txt
+   pip install -r src/ned-ros2-driver/requirements.txt
    ```
 
 4. Build the package:

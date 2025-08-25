@@ -33,6 +33,9 @@
   <exec_depend>niryo_ned_description</exec_depend>
   <exec_depend>xacro</exec_depend>
 
+  <depend>moveit_configs_utils</depend>
+  <depend>moveit_visual_tools</depend>
+  <depend>moveit_ros_visualization</depend>
 
   <export>
       <build_type>ament_cmake</build_type>

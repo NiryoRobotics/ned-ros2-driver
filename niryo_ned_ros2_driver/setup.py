@@ -14,7 +14,7 @@ setup(
         (os.path.join("share", package_name, "config"), glob("config/*.yaml")),
         (os.path.join("share", package_name, "launch"), glob("launch/*.launch.py")),
     ],
-    install_requires=["setuptools"],
+    install_requires=["setuptools", "pyyaml", "roslibpy<2.0.0"],
     zip_safe=True,
     maintainer="Thomas Degallaix",
     maintainer_email="t.degallaix@niryo.com",
